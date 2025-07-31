@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار مكتبة تحليل المشاعر في الخلفية</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .status {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .api-config {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .api-config label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .api-config input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .console-output {
+            background: #000;
+            color: #00ff00;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .note {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .note h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 اختبار مكتبة تحليل المشاعر في الخلفية</h1>
+            <p>هذه صفحة اختبار للمكتبة التي تعمل في الخلفية بدون واجهة مستخدم</p>
+        </div>
+
+        <div class="api-config">
+            <label for="apiUrl">رابط API لإرسال البيانات إليه:</label>
+            <input type="url" id="apiUrl" placeholder="https://your-api.com/emotions" 
+                   value="https://httpbin.org/post">
+            <small>يمكنك استخدام https://httpbin.org/post للاختبار</small>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn">
+                🚀 بدء تحليل المشاعر
+            </button>
+            <button class="btn btn-danger" id="stopBtn" disabled>
+                ⏹️ إيقاف التحليل
+            </button>
+            <button class="btn btn-info" id="statsBtn" disabled>
+                📊 عرض الإحصائيات
+            </button>
+        </div>
+
+        <div class="status" id="status">
+            اضغط على "بدء تحليل المشاعر" للبدء
+        </div>
+
+        <div class="note">
+            <h3>📝 ملاحظات مهمة:</h3>
+            <ul>
+                <li>ستحتاج إلى السماح للموقع بالوصول إلى الكاميرا</li>
+                <li>التحليل يعمل في الخلفية بدون عرض الفيديو</li>
+                <li>النتائج تظهر في الكونسول (اضغط F12 لفتح أدوات المطور)</li>
+                <li>البيانات ترسل إلى API كل 5 ثوان</li>
+                <li>يمكنك تغيير رابط API أعلاه</li>
+            </ul>
+        </div>
+
+        <div class="console-output" id="consoleOutput">
+            <div>🎭 مكتبة تحليل المشاعر في الخلفية جاهزة!</div>
+            <div>افتح الكونسول (F12) لرؤية النتائج التفصيلية...</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@latest/dist/face-api.min.js" ></script>
+    
+    <script src="../js/background-emotion-detector.js"></script>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statsBtn = document.getElementById('statsBtn');
+        const statusEl = document.getElementById('status');
+        const apiUrlInput = document.getElementById('apiUrl');
+        const consoleOutput = document.getElementById('consoleOutput');
+
+        const originalConsoleLog = console.log;
+
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString('ar-SA')}] ${message}`;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+
+        async function  startAnalyzeEmotion() {
+            const apiUrl = 'test';
+            
+            if (!apiUrl) {
+                alert('يرجى إدخال رابط API صحيح');
+                return;
+            }
+
+            try {
+                statusEl.textContent = 'جاري بدء التحليل...';
+                startBtn.disabled = true;
+
+                await window.BackgroundEmotionDetector.init(apiUrl, {
+                    detectionInterval: 100,  // كشف كل 100ms
+                    sendInterval: 5000,      // إرسال كل 5 ثوان
+                    videoWidth: 640,
+                    videoHeight: 480
+                });
+
+                statusEl.textContent = '✅ التحليل يعمل في الخلفية';
+                stopBtn.disabled = false;
+                statsBtn.disabled = false;
+
+            } catch (error) {
+                statusEl.textContent = `❌ خطأ: ${error.message}`;
+                startBtn.disabled = false;
+                console.error('خطأ في بدء التحليل:', error);
+            }
+        }
+
+        stopBtn.addEventListener('click', () => {
+            window.BackgroundEmotionDetector.stop();
+            statusEl.textContent = '⏹️ تم إيقاف التحليل';
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statsBtn.disabled = true;
+        });
+
+        statsBtn.addEventListener('click', () => {
+            const stats = window.BackgroundEmotionDetector.getStats();
+            const latestData = window.BackgroundEmotionDetector.getLatestData(5);
+            
+            console.log('📊 الإحصائيات الحالية:', stats);
+            console.log('📈 آخر 5 قراءات:', latestData);
+            
+            alert(`الإحصائيات:
+• الإطارات المعالجة: ${stats.frameCount}
+• الاكتشافات: ${stats.detectionCount}
+• FPS: ${stats.fps}
+• وقت التشغيل: ${Math.round(stats.uptime / 1000)} ثانية
+• عدد القراءات المحفوظة: ${stats.emotionDataCount}
+
+تحقق من الكونسول للتفاصيل الكاملة`);
+        });
+
+        // رسالة ترحيب
+        console.log('🎭 صفحة اختبار مكتبة تحليل المشاعر جاهزة!');
+        console.log('استخدم الأزرار أعلاه للتحكم في النظام');
+        startAnalyzeEmotion();
+    </script>
+</body>
+</html>
+
