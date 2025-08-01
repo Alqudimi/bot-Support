@@ -275,7 +275,7 @@ def delete_emotion_history(history_id):
         db.session.rollback()
         raise e
 
-def get_user_emotion_history(user_id):
+def get_user_emotion_history_detailed(user_id):
     """
     تسترجع جميع سجلات المشاعر (EmotionHistory) لمستخدم معين
     مع الرسائل المرتبطة بها
@@ -284,11 +284,12 @@ def get_user_emotion_history(user_id):
     :return: قائمة من سجلات EmotionHistory أو None إذا لم يوجد
     """
     try:
+        from sqlalchemy.orm import joinedload
         history_records = db.session.query(EmotionHistory)\
             .filter(EmotionHistory.user_id == user_id)\
             .options(
-                db.joinedload(EmotionHistory.message),  # تحميل الرسالة المرتبطة
-                db.joinedload(EmotionHistory.entries)   # تحميل المدخلات المرتبطة
+                joinedload(EmotionHistory.message),  # تحميل الرسالة المرتبطة
+                joinedload(EmotionHistory.entries)   # تحميل المدخلات المرتبطة
             )\
             .order_by(EmotionHistory.timestamp.desc())\
             .all()
@@ -311,5 +312,5 @@ def get_user_emotion_history(user_id):
         return result
         
     except Exception as e:
-        app.logger.error(f"Error fetching emotion history for user {user_id}: {str(e)}")
+        print(f"Error fetching emotion history for user {user_id}: {str(e)}")
         raise
