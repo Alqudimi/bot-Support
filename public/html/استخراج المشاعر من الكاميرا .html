@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مساعد المشاعر الذكي</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4e54c8;
+            --secondary: #8f94fb;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --day-bg: #f5f7ff;
+            --night-bg: #1a1a2e;
+            --card-day: #ffffff;
+            --card-night: #16213e;
+            --text-day: #333;
+            --text-night: #e6e6ff;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--text-day);
+            min-height: 100vh;
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        body.night-mode {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 100%);
+            color: var(--text-night);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        body.night-mode .container {
+            background: rgba(26, 26, 46, 0.95);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 800px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn i {
+            font-size: 18px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--success) 0%, #3dd28d 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--info) 0%, #5bc0de 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, #ffd966 100%);
+            color: var(--dark);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #ff6b6b 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: white;
+            font-size: 24px;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(20deg);
+        }
+
+        .main-content {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1100px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--card-day);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        body.night-mode .panel {
+            background: var(--card-night);
+        }
+
+        .panel h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        body.night-mode .panel h2 {
+            color: #8f94fb;
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 25px;
+            background: #000;
+        }
+
+        #video {
+            display: block;
+            width: 100%;
+            height: auto;
+            transform: scaleX(-1);
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+
+        .user-info {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 25px;
+            background: rgba(79, 84, 200, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            transition: var(--transition);
+        }
+
+        body.night-mode .user-info {
+            background: rgba(26, 26, 46, 0.5);
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 3px solid var(--primary);
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar i {
+            font-size: 50px;
+            color: #999;
+        }
+
+        .user-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .detail {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        body.night-mode .detail {
+            background: rgba(30, 30, 60, 0.7);
+        }
+
+        .detail h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        body.night-mode .detail h3 {
+            color: #aaa;
+        }
+
+        .detail p {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .emotions-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .emotion-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            border-left: 4px solid var(--primary);
+        }
+
+        body.night-mode .emotion-card {
+            background: rgba(30, 30, 60, 0.7);
+        }
+
+        .emotion-card h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        body.night-mode .emotion-card h3 {
+            color: #bbb;
+        }
+
+        .emotion-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        body.night-mode .emotion-card .value {
+            color: #8f94fb;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-wrapper {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        body.night-mode .chart-wrapper {
+            background: rgba(30, 30, 60, 0.7);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15);
+            transition: var(--transition);
+        }
+
+        .stat-card i {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .users-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(79, 84, 200, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        body.night-mode .user-item {
+            background: rgba(26, 26, 46, 0.5);
+        }
+
+        .user-item:hover {
+            background: rgba(79, 84, 200, 0.2);
+            transform: translateX(5px);
+        }
+
+        body.night-mode .user-item:hover {
+            background: rgba(79, 84, 200, 0.3);
+        }
+
+        .user-item.active {
+            background: rgba(79, 84, 200, 0.3);
+            border-left: 4px solid var(--primary);
+        }
+
+        .user-item-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-left: 15px;
+        }
+
+        .user-item-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-item-info {
+            flex: 1;
+        }
+
+        .user-item-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .user-item-details {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        body.night-mode .user-item-details {
+            color: #aaa;
+        }
+
+        .alert {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: white;
+            color: var(--dark);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            max-width: 450px;
+            z-index: 1000;
+            transform: translateX(150%);
+            transition: transform 0.5s ease;
+        }
+
+        body.night-mode .alert {
+            background: var(--card-night);
+            color: var(--text-night);
+        }
+
+        .alert.show {
+            transform: translateX(0);
+        }
+
+        .alert-icon {
+            font-size: 28px;
+            color: var(--warning);
+        }
+
+        .alert-content h3 {
+            margin-bottom: 8px;
+            color: var(--warning);
+        }
+
+        .alert-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .alert-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 50px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .alert-btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .alert-btn-secondary {
+            background: transparent;
+            border: 1px solid #ccc;
+            color: #666;
+        }
+
+        body.night-mode .alert-btn-secondary {
+            color: #aaa;
+            border-color: #555;
+        }
+
+        .voice-message {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: white;
+            color: var(--dark);
+            padding: 15px 20px;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            transform: translateY(150%);
+            transition: transform 0.5s ease;
+        }
+
+        body.night-mode .voice-message {
+            background: var(--card-night);
+            color: var(--text-night);
+        }
+
+        .voice-message.show {
+            transform: translateY(0);
+        }
+
+        .voice-icon {
+            font-size: 24px;
+            color: var(--success);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            color: white;
+            font-size: 24px;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            background: #f0f0f0;
+            transition: var(--transition);
+        }
+
+        body.night-mode .tab {
+            background: rgba(30, 30, 60, 0.5);
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+            
+            .controls {
+                justify-content: center;
+            }
+            
+            .user-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .alert, .voice-message {
+                max-width: 90%;
+                left: 5%;
+                right: 5%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <p>جاري تحميل النماذج والتهيئة الأولية...</p>
+        <p>قد يستغرق ذلك بضع لحظات</p>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-smile-beam"></i> مساعد المشاعر الذكي</h1>
+                <p>نظام تحليل المشاعر والتعرف على الوجوه باستخدام الذكاء الاصطناعي - يعمل كليًا في متصفحك دون الحاجة للإنترنت</p>
+                <div class="controls">
+                    <button class="btn btn-primary" id="startBtn" disabled>
+                        <i class="fas fa-video"></i> بدء الكاميرا
+                    </button>
+                    <button class="btn btn-danger" id="stopBtn" disabled>
+                        <i class="fas fa-stop"></i> إيقاف الكاميرا
+                    </button>
+                    <button class="btn btn-secondary" id="newUserBtn" disabled>
+                        <i class="fas fa-user-plus"></i> مستخدم جديد
+                    </button>
+                    <button class="btn btn-warning" id="statsBtn">
+                        <i class="fas fa-chart-pie"></i> الإحصائيات
+                    </button>
+                </div>
+            </div>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2><i class="fas fa-camera"></i> تحليل الوجه المباشر</h2>
+                
+                <div class="video-container">
+                    <video id="video" width="640" height="480" autoplay muted playsinline></video>
+                    <canvas id="canvas" width="640" height="480"></canvas>
+                </div>
+                
+                <div class="user-info">
+                    <div class="avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="detail">
+                            <h3>الاسم</h3>
+                            <p id="userName">غير معروف</p>
+                        </div>
+                        <div class="detail">
+                            <h3>الجنس</h3>
+                            <p id="userGender">-</p>
+                        </div>
+                        <div class="detail">
+                            <h3>العمر</h3>
+                            <p id="userAge">-</p>
+                        </div>
+                        <div class="detail">
+                            <h3>الحالة النفسية</h3>
+                            <p id="userEmotion">-</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <h2><i class="fas fa-chart-line"></i> تحليل المشاعر مع الزمن</h2>
+                <div class="chart-wrapper">
+                    <canvas id="emotionChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="tabs">
+                    <div class="tab active" data-tab="users">المستخدمون</div>
+                    <div class="tab" data-tab="stats">الإحصائيات</div>
+                </div>
+                
+                <div id="usersTab">
+                    <h2><i class="fas fa-users"></i> المستخدمون المسجلون</h2>
+                    <div class="users-list" id="usersList">
+                        <!-- سيتم ملؤها بالبيانات -->
+                    </div>
+                </div>
+                
+                <div id="statsTab" style="display: none;">
+                    <h2><i class="fas fa-chart-bar"></i> الإحصائيات العامة</h2>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-users"></i>
+                            <div class="stat-number" id="totalUsers">0</div>
+                            <div class="stat-label">المستخدمون</div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-male"></i>
+                            <div class="stat-number" id="maleCount">0</div>
+                            <div class="stat-label">ذكور</div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-female"></i>
+                            <div class="stat-number" id="femaleCount">0</div>
+                            <div class="stat-label">إناث</div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-smile"></i>
+                            <div class="stat-number" id="avgAge">0</div>
+                            <div class="stat-label">متوسط العمر</div>
+                        </div>
+                    </div>
+                    
+                    <h2 style="margin-top: 30px;"><i class="fas fa-smile-beam"></i> توزيع المشاعر</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="emotionStatsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="alert" id="alert">
+        <div class="alert-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="alert-content">
+            <h3>انتباه: حالة نفسية سلبية</h3>
+            <p>لاحظنا أن حالتك النفسية غير مستقرة منذ فترة. هل ترغب في التحدث أو الحصول على المساعدة؟</p>
+            <div class="alert-actions">
+                <button class="alert-btn alert-btn-primary" id="helpBtn">نعم، أحتاج مساعدة</button>
+                <button class="alert-btn alert-btn-secondary" id="dismissBtn">لا، أنا بخير</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="voice-message" id="voiceMessage">
+        <div class="voice-icon">
+            <i class="fas fa-comment-dots"></i>
+        </div>
+        <div class="voice-text" id="voiceText"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@latest/dist/face-api.min.js"></script>
+    <script>
+        // متغيرات التطبيق
+        let video, canvas, ctx;
+        let isPlaying = false;
+        let detectionInterval;
+        let currentUser = null;
+        let emotionData = [];
+        let negativeEmotionDuration = 0;
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let emotionChart, emotionStatsChart;
+        
+        // عناصر DOM
+        const loadingEl = document.querySelector('.loading');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const newUserBtn = document.getElementById('newUserBtn');
+        const statsBtn = document.getElementById('statsBtn');
+        const themeToggle = document.getElementById('themeToggle');
+        const alertEl = document.getElementById('alert');
+        const voiceMessageEl = document.getElementById('voiceMessage');
+        const voiceTextEl = document.getElementById('voiceText');
+        const usersListEl = document.getElementById('usersList');
+        const usersTab = document.getElementById('usersTab');
+        const statsTab = document.getElementById('statsTab');
+        const tabs = document.querySelectorAll('.tab');
+        
+        // عناصر معلومات المستخدم
+        const userNameEl = document.getElementById('userName');
+        const userGenderEl = document.getElementById('userGender');
+        const userAgeEl = document.getElementById('userAge');
+        const userEmotionEl = document.getElementById('userEmotion');
+        const userAvatarEl = document.querySelector('.avatar');
+        
+        // عناصر الإحصائيات
+        const totalUsersEl = document.getElementById('totalUsers');
+        const maleCountEl = document.getElementById('maleCount');
+        const femaleCountEl = document.getElementById('femaleCount');
+        const avgAgeEl = document.getElementById('avgAge');
+        
+        // ترجمة المشاعر للعربية
+        const emotionTranslations = {
+            'happy': 'سعيد',
+            'sad': 'حزين',
+            'angry': 'غاضب',
+            'fearful': 'خائف',
+            'disgusted': 'مشمئز',
+            'surprised': 'متفاجئ',
+            'neutral': 'محايد'
+        };
+        
+        // ألوان المشاعر
+        const emotionColors = {
+            'happy': '#4CAF50',
+            'sad': '#2196F3',
+            'angry': '#F44336',
+            'fearful': '#9C27B0',
+            'disgusted': '#795548',
+            'surprised': '#FF9800',
+            'neutral': '#9E9E9E'
+        };
+        
+        // تهيئة التطبيق
+        async function init() {
+            try {
+                // تحميل نماذج face-api.js
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
+                    faceapi.nets.faceExpressionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
+                    faceapi.nets.ageGenderNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models')
+                ]);
+                // إعداد العناصر
+                video = document.getElementById('video');
+                canvas = document.getElementById('canvas');
+                ctx = canvas.getContext('2d');
+                console.log(1);
+                
+                // تحديث أزرار التحكم
+                startBtn.disabled = false;
+                newUserBtn.disabled = false;
+                initCharts();
+                // تحديث قائمة المستخدمين
+                updateUsersList();
+                console.log(2);
+
+                updateStats();
+                console.log(3);
+                
+                // إخفاء شاشة التحميل
+                setTimeout(() => {
+                    loadingEl.style.display = 'none';
+                }, 1000);
+                console.log(4);
+                
+                // إعداد الرسوم البيانية
+                
+                
+                // إعداد مستمعي الأحداث
+                setupEventListeners();
+                
+            } catch (error) {
+                loadingEl.innerHTML = `
+                    <div style="text-align: center;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px; color: #ff6b6b;"></i>
+                        <p>حدث خطأ في تحميل النماذج المطلوبة</p>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" style="margin-top: 20px;" onclick="location.reload()">
+                            <i class="fas fa-sync-alt"></i> إعادة المحاولة
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // إعداد الرسوم البيانية
+        function initCharts() {
+            // مخطط المشاعر مع الزمن
+            const emotionCtx = document.getElementById('emotionChart').getContext('2d');
+            emotionChart = new Chart(emotionCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'مستوى المشاعر',
+                        data: [],
+                        backgroundColor: 'rgba(78, 84, 200, 0.1)',
+                        borderColor: 'rgba(78, 84, 200, 1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'تغير المشاعر مع الزمن',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // مخطط إحصاءات المشاعر
+            const statsCtx = document.getElementById('emotionStatsChart').getContext('2d');
+            emotionStatsChart = new Chart(statsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: true,
+                            text: 'توزيع المشاعر لجميع المستخدمين',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            startBtn.addEventListener('click', startCamera);
+            stopBtn.addEventListener('click', stopCamera);
+            newUserBtn.addEventListener('click', createNewUser);
+            statsBtn.addEventListener('click', showStats);
+            themeToggle.addEventListener('click', toggleTheme);
+            document.getElementById('helpBtn').addEventListener('click', () => {
+                alertEl.classList.remove('show');
+                speakMessage("لقد طلبت المساعدة، سأحاول مساعدتك. خذ نفسًا عميقًا وحاول الاسترخاء.");
+            });
+            document.getElementById('dismissBtn').addEventListener('click', () => {
+                alertEl.classList.remove('show');
+                speakMessage("أنا سعيد لأنك بخير. تذكر أنني هنا لمساعدتك إذا احتجت أي شيء.");
+            });
+            
+            // التبويبات
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    if (tab.dataset.tab === 'users') {
+                        usersTab.style.display = 'block';
+                        statsTab.style.display = 'none';
+                    } else {
+                        usersTab.style.display = 'none';
+                        statsTab.style.display = 'block';
+                        updateStats();
+                    }
+                });
+            });
+        }
+        
+        // بدء الكاميرا
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        facingMode: 'user'
+                    }
+                });
+                
+                video.srcObject = stream;
+                
+                video.addEventListener('loadedmetadata', () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    isPlaying = true;
+                    
+                    // بدء الكشف
+                    startDetection();
+                    
+                    // تحديث أزرار التحكم
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                });
+                
+            } catch (error) {
+                showVoiceMessage("حدث خطأ في تشغيل الكاميرا. يرجى التأكد من منح الإذن لاستخدام الكاميرا.");
+            }
+        }
+        
+        // إيقاف الكاميرا
+        function stopCamera() {
+            if (video.srcObject) {
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+            }
+            
+            isPlaying = false;
+            
+            // تنظيف الكانفاس
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // تحديث أزرار التحكم
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+        
+        // بدء الكشف عن الوجوه والمشاعر
+        function startDetection() {
+            detectionInterval = setInterval(async () => {
+                if (!isPlaying || video.paused || video.ended) return;
+                
+                try {
+                    // كشف الوجوه والمشاعر
+                    const detections = await faceapi
+                        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks()
+                        .withFaceExpressions()
+                        .withAgeAndGender();
+                    
+                    // تنظيف الكانفاس
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    if (detections.length > 0) {
+                        const detection = detections[0];
+                        
+                        // رسم النتائج
+                        drawDetection(detection);
+                        
+                        // معالجة المشاعر وتحديث واجهة المستخدم
+                        processDetection(detection);
+                        
+                    } else {
+                        // لا توجد وجوه
+                        resetUserInfo();
+                    }
+                    
+                } catch (error) {
+                    console.error('Error in detection:', error);
+                }
+            }, 1000); // كشف كل ثانية
+        }
+        
+        // رسم نتائج الكشف
+        function drawDetection(detection) {
+            const { x, y, width, height } = detection.detection.box;
+            
+            // رسم مربع حول الوجه
+            ctx.strokeStyle = '#4e54c8';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+            
+            // رسم المعالم
+            const landmarks = detection.landmarks;
+            ctx.fillStyle = '#8f94fb';
+            landmarks.positions.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+            
+            // عرض المشاعر
+            const expressions = detection.expressions;
+            const dominantEmotion = Object.keys(expressions).reduce((a, b) => 
+                expressions[a] > expressions[b] ? a : b
+            );
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x, y - 30, width, 25);
+            ctx.fillStyle = '#333';
+            ctx.font = '16px Arial';
+            ctx.fillText(`${emotionTranslations[dominantEmotion]}: ${Math.round(expressions[dominantEmotion] * 100)}%`, 
+                        x + 5, y - 10);
+        }
+        
+        // معالجة نتائج الكشف
+        function processDetection(detection) {
+            const expressions = detection.expressions;
+            const gender = detection.gender;
+            const age = Math.round(detection.age);
+            const dominantEmotion = Object.keys(expressions).reduce((a, b) => 
+                expressions[a] > expressions[b] ? a : b
+            );
+            
+            // تحديث معلومات المستخدم
+            userGenderEl.textContent = gender === 'male' ? 'ذكر' : 'أنثى';
+            userAgeEl.textContent = `${age} سنة`;
+            userEmotionEl.textContent = emotionTranslations[dominantEmotion];
+            
+            // التعرف على المستخدم أو إنشاء جديد
+            recognizeUser(detection, gender, age);
+            
+            // تسجيل المشاعر
+            recordEmotion(dominantEmotion, expressions[dominantEmotion]);
+            
+            // التحقق من المشاعر السلبية
+            checkNegativeEmotions(dominantEmotion);
+        }
+        
+        // التعرف على المستخدم
+        function recognizeUser(detection, gender, age) {
+            // في تطبيق كامل، نستخدم face-api.js للتعرف على الوجوه
+            // هنا نستخدم محاكاة بسيطة
+            
+            // إذا لم يكن هناك مستخدم حالي
+            if (!currentUser) {
+                // محاولة التعرف على المستخدم
+                if (users.length > 0) {
+                    // نختار المستخدم الأول كتجربة
+                    currentUser = users[0];
+                    updateCurrentUserInfo();
+                    speakMessage(`أهلاً بك مجدداً يا ${currentUser.name}، تبدو ${emotionTranslations[dominantEmotion]} اليوم!`);
+                } else {
+                    // إنشاء مستخدم جديد
+                    createNewUserFromDetection(detection, gender, age);
+                }
+            }
+        }
+        
+        // إنشاء مستخدم جديد من الكشف
+        function createNewUserFromDetection(detection, gender, age) {
+            const newUser = {
+                id: Date.now().toString(),
+                name: `مستخدم ${users.length + 1}`,
+                gender: gender,
+                age: age,
+                firstSeen: new Date().toISOString(),
+                lastSeen: new Date().toISOString(),
+                avatar: null,
+                emotions: []
+            };
+            
+            // حفظ الصورة
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = video.videoWidth;
+            tempCanvas.height = video.videoHeight;
+            tempCtx.drawImage(video, 0, 0);
+            
+            newUser.avatar = tempCanvas.toDataURL('image/png');
+            
+            // إضافة المستخدم
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // تحديث المستخدم الحالي
+            currentUser = newUser;
+            updateCurrentUserInfo();
+            updateUsersList();
+            updateStats();
+            
+            // الترحيب بالمستخدم الجديد
+            speakMessage(`مرحباً بك يا ${currentUser.name}! يبدو أن هذه أول مرة أراكم فيها. أنا مساعد المشاعر الذكي.`);
+        }
+        
+        // تحديث معلومات المستخدم الحالي
+        function updateCurrentUserInfo() {
+            if (!currentUser) return;
+            
+            userNameEl.textContent = currentUser.name;
+            userGenderEl.textContent = currentUser.gender === 'male' ? 'ذكر' : 'أنثى';
+            userAgeEl.textContent = `${currentUser.age} سنة`;
+            
+            // تحديث الصورة
+            if (currentUser.avatar) {
+                userAvatarEl.innerHTML = `<img src="${currentUser.avatar}" alt="Avatar">`;
+            }
+        }
+        
+        // إعادة تعيين معلومات المستخدم
+        function resetUserInfo() {
+            userNameEl.textContent = 'غير معروف';
+            userGenderEl.textContent = '-';
+            userAgeEl.textContent = '-';
+            userEmotionEl.textContent = '-';
+            userAvatarEl.innerHTML = '<i class="fas fa-user-circle"></i>';
+            currentUser = null;
+        }
+        
+        // تسجيل المشاعر
+        function recordEmotion(emotion, confidence) {
+            if (!currentUser) return;
+            
+            const timestamp = new Date().toISOString();
+            const emotionRecord = {
+                emotion: emotion,
+                confidence: confidence,
+                timestamp: timestamp
+            };
+            
+            // إضافة للمستخدم الحالي
+            currentUser.emotions.push(emotionRecord);
+            
+            // إضافة للسجل العام
+            emotionData.push({
+                ...emotionRecord,
+                userId: currentUser.id,
+                userName: currentUser.name
+            });
+            
+            // تحديث الرسم البياني
+            updateEmotionChart(emotionRecord);
+            
+            // تحديث المستخدم في التخزين
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex] = currentUser;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+        }
+        
+        // تحديث مخطط المشاعر
+        function updateEmotionChart(emotionRecord) {
+            const confidencePercent = Math.round(emotionRecord.confidence * 100);
+            
+            // إضافة نقطة جديدة
+            emotionChart.data.labels.push(new Date().toLocaleTimeString());
+            emotionChart.data.datasets[0].data.push(confidencePercent);
+            
+            // الحفاظ على آخر 15 نقطة فقط
+            if (emotionChart.data.labels.length > 15) {
+                emotionChart.data.labels.shift();
+                emotionChart.data.datasets[0].data.shift();
+            }
+            
+            emotionChart.update();
+        }
+        
+        // التحقق من المشاعر السلبية
+        function checkNegativeEmotions(emotion) {
+            const negativeEmotions = ['sad', 'angry', 'fearful'];
+            
+            if (negativeEmotions.includes(emotion)) {
+                negativeEmotionDuration += 1;
+                
+                // إذا استمرت المشاعر السلبية لمدة 60 ثانية (60 كشف)
+                if (negativeEmotionDuration >= 60) {
+                    showAlert();
+                    negativeEmotionDuration = 0;
+                }
+            } else {
+                negativeEmotionDuration = 0;
+            }
+        }
+        
+        // عرض التنبيه
+        function showAlert() {
+            alertEl.classList.add('show');
+            speakMessage("مرحبًا، يبدو أن حالتك النفسية غير مستقرة منذ فترة، هل ترغب في المساعدة؟");
+        }
+        
+        // تحديث قائمة المستخدمين
+        function updateUsersList() {
+            usersListEl.innerHTML = '';
+            
+            if (users.length === 0) {
+                usersListEl.innerHTML = '<p style="text-align: center; padding: 20px;">لا يوجد مستخدمون مسجلون بعد</p>';
+                return;
+            }
+            
+            users.forEach(user => {
+                const userEl = document.createElement('div');
+                userEl.className = 'user-item';
+                if (currentUser && user.id === currentUser.id) {
+                    userEl.classList.add('active');
+                }
+                
+                userEl.innerHTML = `
+                    <div class="user-item-avatar">
+                        ${user.avatar ? `<img src="${user.avatar}" alt="${user.name}">` : `<i class="fas fa-user"></i>`}
+                    </div>
+                    <div class="user-item-info">
+                        <div class="user-item-name">${user.name}</div>
+                        <div class="user-item-details">
+                            <span>${user.gender === 'male' ? 'ذكر' : 'أنثى'}</span>
+                            <span>${user.age} سنة</span>
+                            <span>${formatDate(user.lastSeen)}</span>
+                        </div>
+                    </div>
+                `;
+                
+                userEl.addEventListener('click', () => {
+                    currentUser = user;
+                    updateCurrentUserInfo();
+                    updateUsersList();
+                    speakMessage(`مرحباً بك مجدداً يا ${currentUser.name}! كيف حالك اليوم؟`);
+                });
+                
+                usersListEl.appendChild(userEl);
+            });
+        }
+        
+        // تحديث الإحصائيات
+        function updateStats() {
+            totalUsersEl.textContent = users.length;
+            
+            // عدد الذكور والإناث
+            const maleCount = users.filter(u => u.gender === 'male').length;
+            const femaleCount = users.filter(u => u.gender === 'female').length;
+            maleCountEl.textContent = maleCount;
+            femaleCountEl.textContent = femaleCount;
+            
+            // متوسط العمر
+            const totalAge = users.reduce((sum, user) => sum + user.age, 0);
+            const avgAge = users.length ? Math.round(totalAge / users.length) : 0;
+            avgAgeEl.textContent = avgAge;
+                console.log('updateStats');
+            
+            // تحديث مخطط إحصاءات المشاعر
+            updateEmotionStatsChart();
+        }
+        
+        // تحديث مخطط إحصاءات المشاعر
+        function updateEmotionStatsChart() {
+            const emotionCounts = {
+                'happy': 0,
+                'sad': 0,
+                'angry': 0,
+                'fearful': 0,
+                'disgusted': 0,
+                'surprised': 0,
+                'neutral': 0
+            };
+
+            // حساب عدد المشاعر
+            users.forEach(user => {
+                user.emotions.forEach(emotion => {
+                    emotionCounts[emotion.emotion] += 1;
+                });
+            });
+            console.log(emotionStatsChart.data);
+            console.log(emotionCounts);
+            
+            try{
+                emotionStatsChart.data.labels = Object.keys(emotionCounts).map(e => emotionTranslations[e]);
+
+                emotionStatsChart.data.datasets[0].data = Object.values(emotionCounts);
+                emotionStatsChart.data.datasets[0].backgroundColor = Object.keys(emotionCounts).map(e => emotionColors[e]);
+                
+                emotionStatsChart.update();
+            }catch(error){
+                console.error('updateEmotionStatsChart',error);
+            }
+        }
+        
+        // إنشاء مستخدم جديد
+        function createNewUser() {
+            const name = prompt('الرجاء إدخال اسم المستخدم الجديد:');
+            if (name) {
+                const newUser = {
+                    id: Date.now().toString(),
+                    name: name,
+                    gender: 'male',
+                    age: 30,
+                    firstSeen: new Date().toISOString(),
+                    lastSeen: new Date().toISOString(),
+                    avatar: null,
+                    emotions: []
+                };
+                
+                users.push(newUser);
+                localStorage.setItem('users', JSON.stringify(users));
+                
+                currentUser = newUser;
+                updateCurrentUserInfo();
+                updateUsersList();
+                updateStats();
+                
+                speakMessage(`مرحباً بك يا ${name}! أنا مساعد المشاعر الذكي.`);
+            }
+        }
+        
+        // عرض الإحصائيات
+        function showStats() {
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelector('.tab[data-tab="stats"]').classList.add('active');
+            usersTab.style.display = 'none';
+            statsTab.style.display = 'block';
+            updateStats();
+        }
+        
+        // التبديل بين الوضع الليلي والنهاري
+        function toggleTheme() {
+            document.body.classList.toggle('night-mode');
+            const icon = themeToggle.querySelector('i');
+            icon.classList.toggle('fa-moon');
+            icon.classList.toggle('fa-sun');
+        }
+        
+        // عرض رسالة صوتية
+        function showVoiceMessage(message) {
+            voiceTextEl.textContent = message;
+            voiceMessageEl.classList.add('show');
+            
+            setTimeout(() => {
+                voiceMessageEl.classList.remove('show');
+            }, 5000);
+        }
+        
+        // التحدث برسالة
+        function speakMessage(message) {
+            showVoiceMessage(message);
+            
+            // في تطبيق كامل، نستخدم Web Speech API
+            // SpeechSynthesisUtterance غير مدعوم بالعربية جيدًا في جميع المتصفحات
+            // لذا نكتفي بعرض الرسالة نصيًا
+        }
+        
+        // تنسيق التاريخ
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ar-SA', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+        
+        // بدء التطبيق عند تحميل الصفحة
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
