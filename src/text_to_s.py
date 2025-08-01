@@ -13,7 +13,7 @@ def convert_text_to_speech(text, output_file="output.mp3", voice_id="EXAVITQu4vr
         voice_id (str): معرف الصوت في ElevenLabs (افتراضي: صوت يدعم العربية)
         play_sound (bool): إذا كان True سيتم تشغيل الصوت بعد التحويل (افتراضي: True)
     """
-    API_KEY = "sk_197e28b51d6362e73bd7cc4e94b7ed203e44479b61a6cbc5"
+    API_KEY = ""
     
     headers = {
         "xi-api-key": API_KEY,
