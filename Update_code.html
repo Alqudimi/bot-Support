@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام التعرف الذكي على الوجوه</title>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #8A2BE2;
+            --secondary: #9370DB;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --light: #f0f0f0;
+            --gem-blue: #4169E1;
+            --gem-purple: #9932CC;
+            --gem-pink: #DA70D6;
+            --success: #32CD32;
+            --warning: #FFD700;
+            --danger: #FF4500;
+            --card-bg: rgba(30, 30, 40, 0.8);
+            --card-border: rgba(138, 43, 226, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.5s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--light);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            transform: translateX(-100%);
+            transition: transform 0.5s;
+        }
+
+        .btn:hover::before {
+            transform: translateX(100%);
+        }
+
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn i {
+            font-size: 1.2em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gem-purple), var(--primary));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--gem-pink), #ff6b6b);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #00b894);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #ff7675);
+            color: white;
+        }
+
+        .video-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--card-border);
+            background: var(--darker);
+        }
+
+        #video, #canvas {
+            border-radius: 15px;
+            max-width: 100%;
+            height: auto;
+        }
+        #video {
+            display: block;
+            background-color: #000;
+            transform: scaleX(-1);
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 15px;
+            font-weight: bold;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status.loading {
+            background: rgba(50, 50, 0, 0.3);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .status.ready {
+            background: rgba(0, 50, 0, 0.3);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status.error {
+            background: rgba(80, 0, 0, 0.3);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .emotions-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .emotion-card, .identity-container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(5px);
+        }
+
+        .emotion-card h3, .identity-container h3 {
+            color: var(--light);
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .emotion-card h3 i {
+            color: var(--gem-pink);
+        }
+
+        .emotion-bar {
+            margin-bottom: 15px;
+        }
+
+        .emotion-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #ddd;
+        }
+
+        .emotion-progress {
+            width: 100%;
+            height: 22px;
+            background: rgba(50, 50, 70, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .emotion-fill {
+            height: 100%;
+            border-radius: 15px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 15px rgba(255,255,255,0.2);
+        }
+
+        .emotion-happy { background: linear-gradient(90deg, #FFD700, #FFA500); }
+        .emotion-sad { background: linear-gradient(90deg, #1E90FF, #4169E1); }
+        .emotion-angry { background: linear-gradient(90deg, #FF4500, #DC143C); }
+        .emotion-surprised { background: linear-gradient(90deg, #FF8C00, #FF4500); }
+        .emotion-fearful { background: linear-gradient(90deg, #9932CC, #8A2BE2); }
+        .emotion-disgusted { background: linear-gradient(90deg, #32CD32, #228B22); }
+        .emotion-neutral { background: linear-gradient(90deg, #A9A9A9, #696969); }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-number {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.95em;
+            opacity: 0.9;
+        }
+
+        .log {
+            background: rgba(30, 30, 40, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 15px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin-top: 20px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-entry.info { color: #1E90FF; border-left: 3px solid #1E90FF; }
+        .log-entry.success { color: #32CD32; border-left: 3px solid #32CD32; }
+        .log-entry.warning { color: #FFD700; border-left: 3px solid #FFD700; }
+        .log-entry.error { color: #FF4500; border-left: 3px solid #FF4500; }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 350px;
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* أنماط جديدة للتعرف على الوجوه والجنس */
+        .identity-container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            margin-top: 25px;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(5px);
+        }
+        
+        .identity-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        
+        .identity-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        
+        .identity-info {
+            flex: 1;
+        }
+        
+        .identity-row {
+            display: flex;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .identity-label {
+            font-weight: bold;
+            min-width: 120px;
+            color: #bbb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .identity-value {
+            flex: 1;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .gender-male { color: #1E90FF; }
+        .gender-female { color: #FF69B4; }
+        
+        .known-faces {
+            flex: 1;
+        }
+        
+        .known-faces h4 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ddd;
+        }
+        
+        .known-faces-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .known-face {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            background: rgba(40, 40, 60, 0.6);
+            border: 1px solid rgba(138, 43, 226, 0.2);
+            transition: transform 0.3s;
+        }
+        
+        .known-face:hover {
+            transform: translateY(-3px);
+            background: rgba(50, 50, 80, 0.7);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .face-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-left: 15px;
+            object-fit: cover;
+            border: 2px solid var(--gem-purple);
+            background: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .face-info {
+            flex: 1;
+        }
+        
+        .face-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        
+        .face-gender {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .delete-face {
+            background: rgba(255, 69, 0, 0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: var(--danger);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .delete-face:hover {
+            background: rgba(255, 69, 0, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .name-input-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        
+        .name-input-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            padding: 40px;
+            border-radius: 25px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--gem-purple);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .modal-content::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(138,43,226,0.1) 0%, rgba(138,43,226,0) 70%);
+            z-index: -1;
+        }
+        
+        .modal-title {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 25px;
+            border: 2px solid var(--gem-purple);
+            border-radius: 12px;
+            font-size: 18px;
+            background: rgba(30, 30, 40, 0.7);
+            color: white;
+            text-align: center;
+        }
+        
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--gem-pink);
+            box-shadow: 0 0 15px rgba(218, 112, 214, 0.5);
+        }
+        
+        .gender-select {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .gender-option {
+            padding: 15px 30px;
+            border: 2px solid var(--gem-purple);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(40, 40, 60, 0.5);
+            color: #ddd;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            min-width: 120px;
+        }
+        
+        .gender-option:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .gender-option.selected {
+            border-color: var(--gem-pink);
+            background: rgba(138, 43, 226, 0.2);
+            box-shadow: 0 0 20px rgba(218, 112, 214, 0.5);
+            color: white;
+        }
+        
+        .gender-icon {
+            font-size: 32px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .modal-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .modal-btn.confirm {
+            background: linear-gradient(135deg, var(--success), #00b894);
+            color: white;
+        }
+        
+        .modal-btn.cancel {
+            background: linear-gradient(135deg, var(--danger), #ff6b6b);
+            color: white;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        .capture-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 3px solid var(--gem-purple);
+            margin: 20px auto;
+            overflow: hidden;
+            background: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #444;
+        }
+        
+        .capture-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .sound-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 30, 50, 0.7);
+            border: 1px solid var(--gem-purple);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            font-size: 24px;
+            z-index: 10;
+            transition: all 0.3s;
+        }
+        
+        .sound-toggle:hover {
+            background: rgba(65, 105, 225, 0.3);
+            transform: scale(1.1);
+        }
+        
+        /* أنيميشن النص المتحدث */
+        .speaking {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { text-shadow: 0 0 5px rgba(255,255,255,0.7); }
+            50% { text-shadow: 0 0 20px rgba(218, 112, 214, 0.9); }
+            100% { text-shadow: 0 0 5px rgba(255,255,255,0.7); }
+        }
+    </style>
+</head>
+<body>
+    <div class="sound-toggle" id="soundToggle">
+        <i class="bi bi-volume-up-fill"></i>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1><i class="bi bi-robot"></i> نظام التعرف الذكي على الوجوه</h1>
+            <p>التعرف على الوجوه والمشاعر وتحديد الجنس مع تحية صوتية في الوقت الفعلي</p>
+        </div>
+
+        <div class="main-content">
+            <div class="status loading" id="status">
+                <span>جاري تحميل النماذج الذكية...</span>
+                <div class="loading-spinner"></div>
+            </div>
+            
+            <div id="modelProgress"></div>
+
+            <div class="controls">
+                <button class="btn btn-primary" id="startBtn" disabled>
+                    <i class="bi bi-camera-video-fill"></i> بدء الكاميرا
+                </button>
+                <button class="btn btn-danger" id="stopBtn" disabled>
+                    <i class="bi bi-stop-fill"></i> إيقاف الكاميرا
+                </button>
+                <button class="btn btn-secondary" id="captureBtn" disabled>
+                    <i class="bi bi-camera-fill"></i> التقاط صورة
+                </button>
+                <button class="btn btn-success" id="downloadBtn" disabled>
+                    <i class="bi bi-download"></i> تحميل البيانات
+                </button>
+            </div>
+
+            <div class="video-container">
+                <video id="video" width="640" height="480" autoplay muted playsinline></video>
+                <canvas id="canvas" width="640" height="480"></canvas>
+            </div>
+            
+            <!-- قسم التعرف على الهوية والجنس -->
+            <div class="identity-container">
+                <div class="identity-header">
+                    <i class="bi bi-person-badge-fill" style="font-size: 32px; color: var(--gem-pink);"></i>
+                    <h3>معلومات الهوية والجنس</h3>
+                </div>
+                <div class="identity-content">
+                    <div class="identity-info">
+                        <div class="identity-row">
+                            <div class="identity-label"><i class="bi bi-person-circle"></i> الاسم:</div>
+                            <div class="identity-value" id="identity-name">غير معروف</div>
+                        </div>
+                        <div class="identity-row">
+                            <div class="identity-label"><i class="bi bi-gender-ambiguous"></i> الجنس:</div>
+                            <div class="identity-value" id="identity-gender">غير معروف</div>
+                        </div>
+                        <div class="identity-row">
+                            <div class="identity-label"><i class="bi bi-info-circle"></i> الحالة:</div>
+                            <div class="identity-value" id="identity-status">لم يتم التعرف على وجه</div>
+                        </div>
+                    </div>
+                    <div class="known-faces">
+                        <h4><i class="bi bi-people-fill"></i> الوجوه المخزنة</h4>
+                        <div class="known-faces-list" id="known-faces-list">
+                            <!-- سيتم ملؤها ديناميكياً -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="emotions-panel">
+                <div class="emotion-card">
+                    <h3><i class="bi bi-emoji-smile"></i> المشاعر الحالية</h3>
+                    <div id="currentEmotions">
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span><i class="bi bi-emoji-smile"></i> سعيد</span>
+                                <span id="happy-value">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div class="emotion-fill emotion-happy" id="happy-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span><i class="bi bi-emoji-frown"></i> حزين</span>
+                                <span id="sad-value">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div class="emotion-fill emotion-sad" id="sad-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span><i class="bi bi-emoji-angry"></i> غاضب</span>
+                                <span id="angry-value">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div class="emotion-fill emotion-angry" id="angry-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span><i class="bi bi-emoji-surprise"></i> متفاجئ</span>
+                                <span id="surprised-value">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div class="emotion-fill emotion-surprised" id="surprised-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span><i class="bi bi-emoji-dizzy"></i> خائف</span>
+                                <span id="fearful-value">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div class="emotion-fill emotion-fearful" id="fearful-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span><i class="bi bi-emoji-expressionless"></i> مشمئز</span>
+                                <span id="disgusted-value">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div class="emotion-fill emotion-disgusted" id="disgusted-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span><i class="bi bi-emoji-neutral"></i> محايد</span>
+                                <span id="neutral-value">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div class="emotion-fill emotion-neutral" id="neutral-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="emotion-card">
+                    <h3><i class="bi bi-graph-up"></i> الإحصائيات</h3>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-number" id="frameCount">0</div>
+                            <div class="stat-label">إجمالي الإطارات</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="detectionCount">0</div>
+                            <div class="stat-label">الاكتشافات</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="fps">0</div>
+                            <div class="stat-label">FPS</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="dominantEmotion">-</div>
+                            <div class="stat-label">المشاعر السائدة</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="emotion-card">
+                <h3><i class="bi bi-journal-text"></i> سجل الأحداث</h3>
+                <div class="log" id="log"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- نافذة إدخال الاسم والجنس -->
+    <div class="name-input-modal" id="nameInputModal">
+        <div class="modal-content">
+            <h2 class="modal-title"><i class="bi bi-person-plus-fill"></i> وجدنا وجهاً جديداً!</h2>
+            <p id="greetingText" class="speaking">مرحباً! أنا نظام التعرف الذكي. ما اسمك ومن فضلك أخبرني بجنسك</p>
+            
+            <div class="capture-preview" id="capturePreview">
+                <i class="bi bi-person-circle"></i>
+            </div>
+            
+            <input type="text" class="modal-input" id="nameInput" placeholder="أدخل اسمك هنا">
+            
+            <div class="gender-select">
+                <div class="gender-option male" data-gender="male">
+                    <i class="bi bi-gender-male gender-icon"></i>
+                    <span>ذكر</span>
+                </div>
+                <div class="gender-option female" data-gender="female">
+                    <i class="bi bi-gender-female gender-icon"></i>
+                    <span>أنثى</span>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn confirm" id="confirmNameBtn">
+                    <i class="bi bi-check-circle-fill"></i> تأكيد
+                </button>
+                <button class="modal-btn cancel" id="cancelNameBtn">
+                    <i class="bi bi-x-circle-fill"></i> تخطي
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحميل مكتبة face-api.js -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script>
+        // متغيرات عامة
+        let video, canvas, ctx;
+        let isPlaying = false;
+        let detectionInterval;
+        let emotionData = [];
+        let stats = {
+            frameCount: 0,
+            detectionCount: 0,
+            startTime: null,
+            lastFrameTime: 0
+        };
+        
+        // تخزين الوجوه المعروفة
+        let knownFaces = [];
+        let currentFaceDescriptor = null;
+        let faceMatcher = null;
+        let faceRecognitionInitialized = false;
+        let soundEnabled = true;
+
+        // عناصر DOM
+        const statusEl = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const logEl = document.getElementById('log');
+        const nameInputModal = document.getElementById('nameInputModal');
+        const nameInput = document.getElementById('nameInput');
+        const confirmNameBtn = document.getElementById('confirmNameBtn');
+        const cancelNameBtn = document.getElementById('cancelNameBtn');
+        const genderOptions = document.querySelectorAll('.gender-option');
+        const modelProgressEl = document.getElementById('modelProgress');
+        const soundToggle = document.getElementById('soundToggle');
+        const capturePreview = document.getElementById('capturePreview');
+        const greetingText = document.getElementById('greetingText');
+        
+        // عناصر التعرف على الهوية
+        const identityNameEl = document.getElementById('identity-name');
+        const identityGenderEl = document.getElementById('identity-gender');
+        const identityStatusEl = document.getElementById('identity-status');
+        const knownFacesListEl = document.getElementById('known-faces-list');
+
+        // تهيئة التطبيق
+        async function init() {
+            try {
+                log('بدء تحميل النماذج الذكية...', 'info');
+                
+                // قائمة النماذج المطلوبة
+                const models = [
+                    { net: faceapi.nets.tinyFaceDetector, name: 'كاشف الوجوه' },
+                    { net: faceapi.nets.faceLandmark68Net, name: 'معالم الوجه' },
+                    { net: faceapi.nets.faceRecognitionNet, name: 'التعرف على الوجوه' },
+                    { net: faceapi.nets.faceExpressionNet, name: 'المشاعر' },
+                    { net: faceapi.nets.ageGenderNet, name: 'العمر والجنس' }
+                ];
+
+                // تحميل النماذج مع عرض التقدم
+                for (const [index, model] of models.entries()) {
+                    const progress = Math.round((index / models.length) * 100);
+                    modelProgressEl.innerHTML = `
+                        <div class="status loading">
+                            <span>جاري تحميل ${model.name} (${progress}%)</span>
+                            <div class="loading-spinner"></div>
+                        </div>
+                    `;
+                    
+                    try {
+                        await model.net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+                        log(`تم تحميل نموذج ${model.name} بنجاح`, 'success');
+                    } catch (error) {
+                        log(`خطأ في تحميل نموذج ${model.name}: ${error.message}`, 'error');
+                        // المحاولة من مصدر بديل
+                        try {
+                            await model.net.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
+                            log(`تم تحميل نموذج ${model.name} من مصدر بديل`, 'success');
+                        } catch (altError) {
+                            log(`فشل تحميل نموذج ${model.name} من المصدر البديل: ${altError.message}`, 'error');
+                        }
+                    }
+                }
+
+                log('تم تحميل جميع النماذج بنجاح!', 'success');
+                modelProgressEl.innerHTML = '';
+                
+                // إعداد العناصر
+                video = document.getElementById('video');
+                canvas = document.getElementById('canvas');
+                ctx = canvas.getContext('2d');
+
+                // تحميل الوجوه المخزنة
+                loadKnownFaces();
+                
+                // تحديث الحالة
+                statusEl.innerHTML = '<span>✅ النظام جاهز للاستخدام</span>';
+                statusEl.className = 'status ready';
+                startBtn.disabled = false;
+
+                // إضافة مستمعي الأحداث
+                setupEventListeners();
+
+            } catch (error) {
+                log(`خطأ فادح في التحميل: ${error.message}`, 'error');
+                statusEl.innerHTML = '<span>❌ فشل في تحميل النظام</span>';
+                statusEl.className = 'status error';
+                
+                // إضافة خيار إعادة المحاولة
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'btn btn-primary';
+                retryBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> إعادة المحاولة';
+                retryBtn.style.marginTop = '15px';
+                retryBtn.addEventListener('click', init);
+                statusEl.appendChild(retryBtn);
+            }
+        }
+
+        // إعداد مستمعي الأحداث
+        function setupEventListeners() {
+            startBtn.addEventListener('click', startCamera);
+            stopBtn.addEventListener('click', stopCamera);
+            captureBtn.addEventListener('click', captureFrame);
+            downloadBtn.addEventListener('click', downloadData);
+            soundToggle.addEventListener('click', toggleSound);
+            
+            // أحداث نافذة إدخال الاسم
+            confirmNameBtn.addEventListener('click', saveNewFace);
+            cancelNameBtn.addEventListener('click', cancelFaceRegistration);
+            
+            genderOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    genderOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+        }
+
+        // تبديل الصوت
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            soundToggle.innerHTML = soundEnabled ? 
+                '<i class="bi bi-volume-up-fill"></i>' : 
+                '<i class="bi bi-volume-mute-fill"></i>';
+            
+            log(`تم ${soundEnabled ? 'تفعيل' : 'تعطيل'} الصوت`, 'info');
+        }
+
+        // التحدث بالنص
+        function speak(text) {
+            if (!soundEnabled) return;
+            
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ar-SA'; // اللغة العربية - السعودية
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                
+                // إضافة أنيميشن للتحدث
+                greetingText.classList.add('speaking');
+                
+                utterance.onend = function() {
+                    greetingText.classList.remove('speaking');
+                };
+                
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        // بدء الكاميرا
+        async function startCamera() {
+            try {
+                log('جاري تشغيل الكاميرا...', 'info');
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        facingMode: 'user'
+                    }
+                });
+
+                video.srcObject = stream;
+                
+                video.addEventListener('loadedmetadata', () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    
+                    isPlaying = true;
+                    stats.startTime = Date.now();
+                    
+                    // بدء الكشف
+                    startDetection();
+                    
+                    // تحديث أزرار التحكم
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    captureBtn.disabled = false;
+                    
+                    log('تم تشغيل الكاميرا بنجاح!', 'success');
+                });
+
+            } catch (error) {
+                log(`خطأ في تشغيل الكاميرا: ${error.message}`, 'error');
+                
+                // تقديم حلول للمستخدم
+                const errorMsg = document.createElement('div');
+                errorMsg.innerHTML = `
+                    <div class="status error" style="text-align: left; margin-top: 15px;">
+                        <strong>حلول مقترحة:</strong>
+                        <ul style="margin: 10px 0; padding-left: 25px;">
+                            <li>تأكد من أن الكاميرا متصلة وتعمل</li>
+                            <li>امنح الإذن للصفحة باستخدام الكاميرا</li>
+                            <li>تأكد من عدم استخدام الكاميرا من قبل تطبيق آخر</li>
+                            <li>جرب متصفحاً مختلفاً مثل Chrome أو Firefox</li>
+                        </ul>
+                        <button class="btn btn-primary" id="retryCameraBtn" style="margin-top: 10px;">
+                            <i class="bi bi-arrow-repeat"></i> إعادة المحاولة
+                        </button>
+                    </div>
+                `;
+                statusEl.appendChild(errorMsg);
+                
+                document.getElementById('retryCameraBtn').addEventListener('click', startCamera);
+            }
+        }
+
+        // إيقاف الكاميرا
+        function stopCamera() {
+            if (video.srcObject) {
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+            }
+
+            isPlaying = false;
+            
+            // تنظيف الكانفاس
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // تحديث أزرار التحكم
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            captureBtn.disabled = true;
+            downloadBtn.disabled = false;
+            
+            // إعادة تعيين حالة التعرف
+            identityNameEl.textContent = 'غير معروف';
+            identityGenderEl.textContent = 'غير معروف';
+            identityStatusEl.textContent = 'لم يتم التعرف على وجه';
+            
+            log('تم إيقاف الكاميرا', 'info');
+        }
+
+        // بدء الكشف عن المشاعر والهوية
+        function startDetection() {
+            detectionInterval = setInterval(async () => {
+                if (!isPlaying || video.paused || video.ended) return;
+
+                try {
+                    stats.frameCount++;
+                    updateStats();
+
+                    // كشف الوجوه والمشاعر والعمر والجنس
+                    const detections = await faceapi
+                        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks()
+                        .withFaceExpressions()
+                        .withFaceDescriptors()
+                        .withAgeAndGender();
+
+                    // تنظيف الكانفاس
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    if (detections.length > 0) {
+                        stats.detectionCount++;
+                        
+                        // رسم النتائج
+                        detections.forEach(detection => {
+                            drawDetection(detection);
+                            processEmotions(detection.expressions);
+                            processIdentity(detection);
+                        });
+
+                        // حفظ البيانات
+                        if (detections[0]) {
+                            saveEmotionData(detections[0].expressions);
+                        }
+                    } else {
+                        // لا توجد وجوه
+                        resetEmotionDisplay();
+                        identityNameEl.textContent = 'غير معروف';
+                        identityGenderEl.textContent = 'غير معروف';
+                        identityStatusEl.textContent = 'لم يتم التعرف على وجه';
+                    }
+
+                } catch (error) {
+                    log(`خطأ في الكشف: ${error.message}`, 'error');
+                }
+            }, 300);
+        }
+
+        // رسم نتائج الكشف
+        function drawDetection(detection) {
+            const { x, y, width, height } = detection.detection.box;
+            
+            // رسم مربع حول الوجه
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+            
+            // رسم المعالم
+            const landmarks = detection.landmarks;
+            ctx.fillStyle = '#ff0000';
+            landmarks.positions.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            // عرض المشاعر
+            const expressions = detection.expressions;
+            const dominantEmotion = Object.keys(expressions).reduce((a, b) => 
+                expressions[a] > expressions[b] ? a : b
+            );
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(x, y - 30, width, 25);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px Arial';
+            ctx.fillText(`${getEmotionArabic(dominantEmotion)}: ${(expressions[dominantEmotion] * 100).toFixed(1)}%`, 
+                        x + 5, y - 10);
+            
+            // عرض الجنس والعمر
+            if (detection.gender && detection.age) {
+                const genderText = detection.gender === 'male' ? 'ذكر' : 'أنثى';
+                const genderColor = detection.gender === 'male' ? '#1E90FF' : '#FF69B4';
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(x, y - 60, width, 25);
+                ctx.fillStyle = genderColor;
+                ctx.font = '16px Arial';
+                ctx.fillText(`${genderText} - ${Math.round(detection.age)} سنة`, x + 5, y - 40);
+            }
+        }
+
+        // معالجة المشاعر وتحديث العرض
+        function processEmotions(expressions) {
+            const emotions = ['happy', 'sad', 'angry', 'surprised', 'fearful', 'disgusted', 'neutral'];
+            
+            emotions.forEach(emotion => {
+                const value = expressions[emotion] || 0;
+                const percentage = Math.round(value * 100);
+                
+                // تحديث شريط التقدم
+                const bar = document.getElementById(`${emotion}-bar`);
+                const valueEl = document.getElementById(`${emotion}-value`);
+                
+                if (bar && valueEl) {
+                    bar.style.width = `${percentage}%`;
+                    valueEl.textContent = `${percentage}%`;
+                }
+            });
+
+            // تحديث المشاعر السائدة
+            const dominantEmotion = Object.keys(expressions).reduce((a, b) => 
+                expressions[a] > expressions[b] ? a : b
+            );
+            
+            document.getElementById('dominantEmotion').textContent = getEmotionArabic(dominantEmotion);
+        }
+
+        // معالجة التعرف على الهوية والجنس
+        function processIdentity(detection) {
+            if (!faceRecognitionInitialized) {
+                identityStatusEl.textContent = 'جاري تهيئة نظام التعرف...';
+                return;
+            }
+            
+            // التعرف على الوجه
+            const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+            
+            if (bestMatch && bestMatch.distance < 0.5) {
+                // وجدنا تطابقاً
+                const matchedFace = knownFaces.find(f => f.id === bestMatch.label);
+                if (matchedFace) {
+                    identityNameEl.textContent = matchedFace.name;
+                    identityGenderEl.textContent = matchedFace.gender === 'male' ? 'ذكر' : 'أنثى';
+                    identityGenderEl.className = matchedFace.gender === 'male' ? 'gender-male' : 'gender-female';
+                    identityStatusEl.textContent = `تم التعرف على الوجه (دقة: ${(100 - bestMatch.distance * 100).toFixed(1)}%)`;
+                    
+                    // إخبار المستخدم باسمه (فقط عند التعرف لأول مرة في هذه الجلسة)
+                    if (!matchedFace.welcomed) {
+                        const greeting = `مرحباً ${matchedFace.name}! سعيد برؤيتك اليوم.`;
+                        log(greeting, 'success');
+                        speak(greeting);
+                        matchedFace.welcomed = true;
+                    }
+                }
+            } else {
+                // وجدنا وجهاً جديداً
+                identityNameEl.textContent = 'غير معروف';
+                identityGenderEl.textContent = 'غير معروف';
+                identityStatusEl.textContent = 'تم اكتشاف وجه جديد';
+                
+                // تخزين واصف الوجه الحالي
+                currentFaceDescriptor = detection.descriptor;
+                
+                // التقاط صورة للعرض
+                captureFaceImage();
+                
+                // عرض نافذة التسجيل
+                if (!nameInputModal.classList.contains('active')) {
+                    nameInput.value = '';
+                    genderOptions.forEach(opt => opt.classList.remove('selected'));
+                    nameInputModal.classList.add('active');
+                    
+                    // تحية صوتية
+                    speak("مرحباً! يبدو أننا لم نلتقي من قبل. ما اسمك ومن فضلك أخبرني بجنسك؟");
+                }
+            }
+        }
+
+        // التقاط صورة للوجه
+        function captureFaceImage() {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            tempCanvas.width = video.videoWidth;
+            tempCanvas.height = video.videoHeight;
+            
+            // رسم الفيديو
+            tempCtx.drawImage(video, 0, 0);
+            
+            // حفظ الصورة للعرض
+            capturePreview.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = tempCanvas.toDataURL();
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            capturePreview.appendChild(img);
+        }
+
+        // إعادة تعيين عرض المشاعر
+        function resetEmotionDisplay() {
+            const emotions = ['happy', 'sad', 'angry', 'surprised', 'fearful', 'disgusted', 'neutral'];
+            
+            emotions.forEach(emotion => {
+                const bar = document.getElementById(`${emotion}-bar`);
+                const valueEl = document.getElementById(`${emotion}-value`);
+                
+                if (bar && valueEl) {
+                    bar.style.width = '0%';
+                    valueEl.textContent = '0%';
+                }
+            });
+
+            document.getElementById('dominantEmotion').textContent = '-';
+        }
+
+        // حفظ بيانات المشاعر
+        function saveEmotionData(expressions) {
+            const timestamp = Date.now();
+            const data = {
+                timestamp,
+                datetime: new Date(timestamp).toISOString(),
+                frame: stats.frameCount,
+                expressions: { ...expressions }
+            };
+            
+            emotionData.push(data);
+            
+            // الاحتفاظ بآخر 1000 إطار فقط
+            if (emotionData.length > 1000) {
+                emotionData = emotionData.slice(-1000);
+            }
+        }
+
+        // تحديث الإحصائيات
+        function updateStats() {
+            document.getElementById('frameCount').textContent = stats.frameCount;
+            document.getElementById('detectionCount').textContent = stats.detectionCount;
+            
+            // حساب FPS
+            const currentTime = Date.now();
+            if (currentTime - stats.lastFrameTime > 1000) {
+                const fps = Math.round(stats.frameCount / ((currentTime - stats.startTime) / 1000));
+                document.getElementById('fps').textContent = fps;
+                stats.lastFrameTime = currentTime;
+            }
+        }
+
+        // التقاط إطار
+        function captureFrame() {
+            if (!isPlaying) return;
+
+            // إنشاء كانفاس مؤقت
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            tempCanvas.width = video.videoWidth;
+            tempCanvas.height = video.videoHeight;
+            
+            // رسم الفيديو والتحليل
+            tempCtx.drawImage(video, 0, 0);
+            tempCtx.drawImage(canvas, 0, 0);
+            
+            // تحميل الصورة
+            const link = document.createElement('a');
+            link.download = `face_capture_${Date.now()}.png`;
+            link.href = tempCanvas.toDataURL();
+            link.click();
+            
+            log('تم التقاط الإطار وحفظه', 'success');
+        }
+
+        // تحميل البيانات
+        function downloadData() {
+            if (emotionData.length === 0) {
+                log('لا توجد بيانات للتحميل', 'warning');
+                return;
+            }
+
+            const data = {
+                metadata: {
+                    totalFrames: stats.frameCount,
+                    totalDetections: stats.detectionCount,
+                    detectionRate: stats.detectionCount / Math.max(stats.frameCount, 1),
+                    duration: stats.startTime ? (Date.now() - stats.startTime) / 1000 : 0,
+                    timestamp: new Date().toISOString(),
+                    library: 'face-api.js'
+                },
+                emotions: emotionData,
+                knownFaces: knownFaces.map(f => ({ id: f.id, name: f.name, gender: f.gender }))
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { 
+                type: 'application/json' 
+            });
+            
+            const link = document.createElement('a');
+            link.download = `face_recognition_data_${Date.now()}.json`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            
+            log(`تم تحميل بيانات ${emotionData.length} إطار و${knownFaces.length} وجوه`, 'success');
+        }
+
+        // ترجمة المشاعر إلى العربية
+        function getEmotionArabic(emotion) {
+            const translations = {
+                'happy': 'سعيد',
+                'sad': 'حزين',
+                'angry': 'غاضب',
+                'surprised': 'متفاجئ',
+                'fearful': 'خائف',
+                'disgusted': 'مشمئز',
+                'neutral': 'محايد'
+            };
+            return translations[emotion] || emotion;
+        }
+
+        // إضافة رسالة إلى السجل
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString('ar-SA');
+            const icon = {
+                'info': 'bi-info-circle',
+                'success': 'bi-check-circle',
+                'warning': 'bi-exclamation-circle',
+                'error': 'bi-x-circle'
+            }[type];
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `
+                <i class="bi ${icon}"></i>
+                <span>[${timestamp}] ${message}</span>
+            `;
+            
+            logEl.appendChild(logEntry);
+            logEl.scrollTop = logEl.scrollHeight;
+            
+            console.log(`[FaceAI] ${message}`);
+        }
+        
+        // تحميل الوجوه المخزنة
+        function loadKnownFaces() {
+            try {
+                const savedFaces = localStorage.getItem('knownFaces');
+                if (savedFaces) {
+                    knownFaces = JSON.parse(savedFaces);
+                    updateFaceMatcher();
+                    updateKnownFacesList();
+                    log(`تم تحميل ${knownFaces.length} وجوه معروفة`, 'success');
+                } else {
+                    log('لا توجد وجوه مخزنة', 'info');
+                }
+            } catch (e) {
+                log('خطأ في تحميل الوجوه المخزنة: ' + e.message, 'error');
+            }
+        }
+        
+        // حفظ الوجوه في التخزين المحلي
+        function saveKnownFaces() {
+            try {
+                localStorage.setItem('knownFaces', JSON.stringify(knownFaces));
+                updateFaceMatcher();
+                updateKnownFacesList();
+            } catch (e) {
+                log('خطأ في حفظ الوجوه: ' + e.message, 'error');
+            }
+        }
+        
+        // تحديث FaceMatcher
+        function updateFaceMatcher() {
+            if (knownFaces.length > 0) {
+                const labeledDescriptors = knownFaces.map(face => 
+                    new faceapi.LabeledFaceDescriptors(face.id, [new Float32Array(face.descriptor)])
+                );
+                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors);
+                faceRecognitionInitialized = true;
+            } else {
+                faceRecognitionInitialized = false;
+            }
+        }
+        
+        // تحديث قائمة الوجوه المعروفة
+        function updateKnownFacesList() {
+            knownFacesListEl.innerHTML = '';
+            
+            if (knownFaces.length === 0) {
+                knownFacesListEl.innerHTML = '<div class="known-face"><i class="bi bi-info-circle"></i> لا توجد وجوه مخزنة بعد</div>';
+                return;
+            }
+            
+            knownFaces.forEach(face => {
+                const faceEl = document.createElement('div');
+                faceEl.className = 'known-face';
+                
+                faceEl.innerHTML = `
+                    <div class="face-avatar">
+                        ${face.avatar ? 
+                            `<img src="${face.avatar}" alt="${face.name}">` : 
+                            `<i class="bi bi-person-circle"></i>`
+                        }
+                    </div>
+                    <div class="face-info">
+                        <div class="face-name">${face.name}</div>
+                        <div class="face-gender">${face.gender === 'male' ? '👨 ذكر' : '👩 أنثى'}</div>
+                    </div>
+                    <button class="delete-face" data-id="${face.id}">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                `;
+                
+                knownFacesListEl.appendChild(faceEl);
+            });
+            
+            // إضافة مستمعي الأحداث لأزرار الحذف
+            document.querySelectorAll('.delete-face').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const faceId = this.getAttribute('data-id');
+                    deleteFace(faceId);
+                });
+            });
+        }
+        
+        // حذف وجه
+        function deleteFace(faceId) {
+            knownFaces = knownFaces.filter(f => f.id !== faceId);
+            saveKnownFaces();
+            log(`تم حذف الوجه ${faceId}`, 'success');
+        }
+        
+        // حفظ وجه جديد
+        function saveNewFace() {
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert('الرجاء إدخال اسم');
+                return;
+            }
+            
+            const selectedGender = document.querySelector('.gender-option.selected');
+            if (!selectedGender) {
+                alert('الرجاء تحديد الجنس');
+                return;
+            }
+            
+            const gender = selectedGender.getAttribute('data-gender');
+            const avatar = capturePreview.querySelector('img')?.src || '';
+            
+            // إنشاء معرف فريد للوجه
+            const faceId = 'face_' + Date.now();
+            
+            // حفظ الوجه
+            knownFaces.push({
+                id: faceId,
+                name: name,
+                gender: gender,
+                avatar: avatar,
+                descriptor: Array.from(currentFaceDescriptor),
+                welcomed: false
+            });
+            
+            saveKnownFaces();
+            
+            // إغلاق النافذة
+            nameInputModal.classList.remove('active');
+            
+            // إخبار المستخدم باسمه
+            identityNameEl.textContent = name;
+            identityGenderEl.textContent = gender === 'male' ? 'ذكر' : 'أنثى';
+            identityGenderEl.className = gender === 'male' ? 'gender-male' : 'gender-female';
+            identityStatusEl.textContent = 'تم تسجيل الوجه الجديد';
+            
+            const welcomeMsg = `مرحباً ${name}! تم تسجيل وجهك بنجاح في النظام.`;
+            log(welcomeMsg, 'success');
+            speak(welcomeMsg);
+        }
+        
+        // إلغاء تسجيل الوجه
+        function cancelFaceRegistration() {
+            nameInputModal.classList.remove('active');
+            identityStatusEl.textContent = 'تم تجاهل الوجه الجديد';
+            log('تم تجاهل الوجه الجديد', 'info');
+            speak("حسناً، سأتجاهل هذا الوجه الآن. يمكنك تسجيله لاحقاً إذا أردت.");
+        }
+
+        window.addEventListener('load', init);
+
+        // تنظيف الموارد عند إغلاق الصفحة
+        window.addEventListener('beforeunload', () => {
+            if (isPlaying) {
+                stopCamera();
+            }
+        });
+    </script>
+</body>
+</html>
