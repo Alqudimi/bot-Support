@@ -68,5 +68,10 @@
       }
     ],
     "message_content": "شكراً جزيلاً على التحديث. سأراجع المستندات الآن."
-  }
+  },
+  {
+    '[SQL: INSERT INTO messages (id, user_id, content, timestamp, dominant_emotion) VALUES (?, ?, ?, ?, ?)]\n' +
+    "[parameters: ('80c48f2c-28d4-4eb2-9818-5bd549022e1a', 'f304664e-1a21-4738-a294-4241148fb6ff', 'شكراً جزيلاً على التحديث. سأراجع المستندات الآن.', '2025-08-01 19:00:13.356556', 'محايد')]\n" +
+    '(Background on this error at: https://sqlalche.me/e/20/gkpj)'
+}
 ]

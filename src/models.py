@@ -1,6 +1,8 @@
 import uuid
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy 
 from datetime import datetime
+from sqlalchemy import JSON
+from sqlalchemy.sql import exists
 
 
 db = SQLAlchemy()
@@ -15,159 +17,59 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # العلاقات
-    messages = db.relationship('Message', backref='user', lazy=True)
-    emotion_entries = db.relationship('EmotionEntry', backref='user', lazy=True)
+    messages = db.relationship('Message', back_populates='user', cascade='all, delete-orphan')
+    emotion_histories = db.relationship('EmotionHistory', back_populates='user')
+    
+    
 
 class Message(db.Model):
     __tablename__ = 'messages'
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.String(50), db.ForeignKey('users.user_id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, index=True)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     dominant_emotion = db.Column(db.String(50))
     
-    emotion_history = db.relationship('EmotionHistory', backref='message', lazy=True)
+    
+    user = db.relationship('User', back_populates='messages')
+    emotion_history = db.relationship('EmotionHistory', back_populates='message', cascade='all, delete-orphan')
+    
 
 class EmotionHistory(db.Model):
     __tablename__ = 'emotion_history'
-    
     id = db.Column(db.Integer, primary_key=True)
-    message_id = db.Column(db.Integer, db.ForeignKey('messages.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False)
+    message_id = db.Column(db.String(36), db.ForeignKey('messages.id'), nullable=False)
+    user_id = db.Column(db.String(50), db.ForeignKey('users.user_id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
-    emotion_entries = db.relationship('EmotionEntry', backref='emotion_history', lazy=True)
+    user = db.relationship('User', back_populates='emotion_histories')
+    message = db.relationship('Message', back_populates='emotion_history')
+    entries = db.relationship('EmotionEntry', back_populates='history', cascade='all, delete-orphan')
+    
+    
+    __table_args__ = (
+        db.Index('idx_emotion_history_user', 'user_id'),
+        db.Index('idx_emotion_history_message', 'message_id'),
+        db.Index('idx_emotion_history_timestamp', 'timestamp'),
+    )
+
 
 class EmotionEntry(db.Model):
     __tablename__ = 'emotion_entries'
     
     id = db.Column(db.Integer, primary_key=True)
     history_id = db.Column(db.Integer, db.ForeignKey('emotion_history.id'), nullable=False)
-    user_id = db.Column(db.String(50), db.ForeignKey('users.user_id'), nullable=False)
-    emotion_type = db.Column(db.String(50), nullable=False)
-    percentage = db.Column(db.Float, nullable=False)
+    predictions = db.Column(JSON)
     
-    __table_args__ = (
-        db.UniqueConstraint('history_id', 'emotion_type', name='unique_emotion_per_history'),
-    )
-
-#=====================EmotionAnalysis fun=========================
-
-# الحصول على أكثر المشاعر شيوعاً لدى مستخدم
-def get_user_dominant_emotion(user_id):
-    from sqlalchemy import func
     
-    result = db.session.query(
-        EmotionEntry.emotion_type,
-        func.sum(EmotionEntry.percentage).label('total')
-    ).filter_by(user_id=user_id
-    ).group_by(EmotionEntry.emotion_type
-    ).order_by(func.sum(EmotionEntry.percentage).desc()
-    ).first()
+    history = db.relationship('EmotionHistory', back_populates='entries')
     
-    return result.emotion_type if result else None
-
-# تحليل تطور المشاعر مع الوقت لمستخدم معين
-def get_emotion_timeline(user_id, emotion_type):
-    return db.session.query(
-        EmotionHistory.timestamp,
-        EmotionEntry.percentage
-    ).join(EmotionEntry
-    ).filter(EmotionEntry.user_id == user_id,
-             EmotionEntry.emotion_type == emotion_type
-    ).order_by(EmotionHistory.timestamp
-    ).all()
-
-# الحصول على المستخدمين الأكثر سعادة بناءً على مشاعرهم
-def get_happiest_users(limit=5):
-    from sqlalchemy import func
-    
-    return db.session.query(
-        User,
-        func.avg(EmotionEntry.percentage).label('happiness_score')
-    ).join(EmotionEntry
-    ).filter(EmotionEntry.emotion_type == 'happy'
-    ).group_by(User.user_id
-    ).order_by(func.avg(EmotionEntry.percentage).desc()
-    ).limit(limit
-    ).all()
-
-def add_message(data):
-    """إضافة رسالة جديدة مع بيانات المشاعر المرتبطة بها"""
-    try:
-        # إنشاء أو تحديث المستخدم
-        user = User.query.get(data['user_id'])
-        if not user:
-            user = User(
-                user_id=data['user_id'],
-                name=data['sender_name'],
-                gender=data['gender'],
-                approximate_age=data['approximate_age']
-            )
-            db.session.add(user)
-        
-        # إنشاء الرسالة
-        message = Message(
-            user_id=user.user_id,
-            content=data['message_content'],
-            timestamp=datetime.fromisoformat(data['timestamp']),
-            dominant_emotion=data['dominant_emotion']
-        )
-        db.session.add(message)
-        
-        # إضافة سجل المشاعر
-        for emotion_record in data['emotion_history_20s']:
-            history = EmotionHistory(
-                message=message,
-                timestamp=datetime.fromisoformat(emotion_record['timestamp'])
-            )
-            db.session.add(history)
-            
-            for emotion, percentage in emotion_record['emotion_percentage'].items():
-                entry = EmotionEntry(
-                    emotion_history=history,
-                    user_id=user.user_id,
-                    emotion_type=emotion,
-                    percentage=percentage
-                )
-                db.session.add(entry)
-        
-        db.session.commit()
-        return True
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error adding message: {str(e)}")
-        return False
-
-def get_user_messages(user_id):
-    """الحصول على جميع رسائل مستخدم معين"""
-    return Message.query.filter_by(user_id=user_id).order_by(Message.timestamp.desc()).all()
-
-def get_emotion_analysis(user_id):
-    """تحليل المشاعر السائدة لمستخدم"""
-    from sqlalchemy import func
-    
-    return db.session.query(
-        Message.dominant_emotion,
-        func.count(Message.id)
-    ).filter_by(user_id=user_id
-    ).group_by(Message.dominant_emotion
-    ).all()
-
-def get_emotion_trend(user_id):
-    """تتبع تغير المشاعر عبر الوقت لمستخدم"""
-    return db.session.query(
-        EmotionHistory.timestamp,
-        EmotionEntry.emotion_type,
-        EmotionEntry.percentage
-    ).join(EmotionEntry
-    ).filter(EmotionEntry.user_id == user_id
-    ).order_by(EmotionHistory.timestamp
-    ).all()
+   
 
 #=====================Users fun=========================
 # إنشاء مستخدم جديد
-def create_user( name, gender, approximate_age):
+def create_user(name, gender, approximate_age):
     try:
         new_user = User(
             name=name,
@@ -227,19 +129,34 @@ def search_users_by_name(name):
 def get_users_count():
     return User.query.count()
 
+
+def check_user_exists(user_id):
+    """
+    تتحقق من وجود مستخدم بالمعرف المحدد (أكثر كفاءة)
+    :param user_id: معرف المستخدم المراد البحث عنه
+    :return: True إذا كان المستخدم موجوداً، False إذا غير موجود
+    """
+    return db.session.query(exists().where(User.user_id == user_id)).scalar()
+
 #================================Message===================
 # إنشاء رسالة جديدة
-def create_message(user_id, content, timestamp, dominant_emotion):
+def create_message(user_id, content, dominant_emotion):
     try:
         new_message = Message(
+            id=str(uuid.uuid4()),
             user_id=user_id,
             content=content,
-            timestamp=timestamp,
             dominant_emotion=dominant_emotion
         )
+        new_history = EmotionHistory(
+            message_id=new_message.id,
+            user_id=user_id,
+        )
+        
         db.session.add(new_message)
+        db.session.add(new_history)
         db.session.commit()
-        return new_message
+        return new_message,new_history
     except Exception as e:
         db.session.rollback()
         raise e
@@ -303,11 +220,10 @@ def get_messages_count():
     return Message.query.count()
 #================================EmotionHistory===================
 # إنشاء سجل مشاعر جديد
-def create_emotion_history(message_id, timestamp):
+def create_emotion_history(message_id):
     try:
         new_history = EmotionHistory(
             message_id=message_id,
-            timestamp=timestamp
         )
         db.session.add(new_history)
         db.session.commit()
@@ -358,84 +274,42 @@ def delete_emotion_history(history_id):
     except Exception as e:
         db.session.rollback()
         raise e
-#================================EmotionEntry===================
-# إنشاء مدخل مشاعر جديد
-def create_emotion_entry(history_id, user_id, emotion_type, percentage):
-    try:
-        new_entry = EmotionEntry(
-            history_id=history_id,
-            user_id=user_id,
-            emotion_type=emotion_type,
-            percentage=percentage
-        )
-        db.session.add(new_entry)
-        db.session.commit()
-        return new_entry
-    except Exception as e:
-        db.session.rollback()
-        raise e
 
-# الحصول على مدخل مشاعر بواسطة المعرف
-def get_emotion_entry_by_id(entry_id):
-    return EmotionEntry.query.get(entry_id)
-
-# الحصول على مدخلات مشاعر لسجل معين
-def get_entries_for_history(history_id):
-    return EmotionEntry.query.filter_by(history_id=history_id).all()
-
-# الحصول على مدخلات مشاعر لنوع معين
-def get_entries_by_emotion_type(emotion_type):
-    return EmotionEntry.query.filter_by(emotion_type=emotion_type).all()
-
-# الحصول على متوسط مشاعر مستخدم معين
-def get_user_emotion_average(user_id):
-    from sqlalchemy import func
+def get_user_emotion_history(user_id):
+    """
+    تسترجع جميع سجلات المشاعر (EmotionHistory) لمستخدم معين
+    مع الرسائل المرتبطة بها
     
-    result = db.session.query(
-        EmotionEntry.emotion_type,
-        func.avg(EmotionEntry.percentage).label('average')
-    ).filter_by(user_id=user_id
-    ).group_by(EmotionEntry.emotion_type
-    ).all()
-    
-    return {row.emotion_type: row.average for row in result}
-
-# تحديث نسبة المشاعر في مدخل معين
-def update_emotion_entry_percentage(entry_id, new_percentage):
+    :param user_id: معرف المستخدم (String)
+    :return: قائمة من سجلات EmotionHistory أو None إذا لم يوجد
+    """
     try:
-        entry = EmotionEntry.query.get(entry_id)
-        if not entry:
+        history_records = db.session.query(EmotionHistory)\
+            .filter(EmotionHistory.user_id == user_id)\
+            .options(
+                db.joinedload(EmotionHistory.message),  # تحميل الرسالة المرتبطة
+                db.joinedload(EmotionHistory.entries)   # تحميل المدخلات المرتبطة
+            )\
+            .order_by(EmotionHistory.timestamp.desc())\
+            .all()
+        
+        if not history_records:
             return None
+            
+        # تحويل النتائج إلى قاموس قابل للتسلسل
+        result = []
+        for record in history_records:
+            result.append({
+                "id": record.id,
+                "user_id": record.user_id,
+                "message_id": record.message_id,
+                "timestamp": record.timestamp.isoformat(),
+                "message_content": record.message.content if record.message else None,
+                "entries_count": len(record.entries)
+            })
+            
+        return result
         
-        entry.percentage = new_percentage
-        db.session.commit()
-        return entry
     except Exception as e:
-        db.session.rollback()
-        raise e
-
-# حذف مدخل مشاعر
-def delete_emotion_entry(entry_id):
-    try:
-        entry = EmotionEntry.query.get(entry_id)
-        if not entry:
-            return False
-        
-        db.session.delete(entry)
-        db.session.commit()
-        return True
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-# الحصول على توزيع المشاعر لرسالة معينة
-def get_message_emotion_distribution(message_id):
-    from sqlalchemy import func
-    
-    return db.session.query(
-        EmotionEntry.emotion_type,
-        func.avg(EmotionEntry.percentage).label('average')
-    ).join(EmotionHistory
-    ).filter(EmotionHistory.message_id == message_id
-    ).group_by(EmotionEntry.emotion_type
-    ).all()
+        app.logger.error(f"Error fetching emotion history for user {user_id}: {str(e)}")
+        raise

@@ -6,14 +6,23 @@ import json
 class EmotionAnalyzer:
     def __init__(self, data):
         self.data = data
+        self.emotion_types = self._get_emotion_types()
         self.df = self._process_data()
+
+    def _get_emotion_types(self):
+        if self.data and "emotion_history_20s" in self.data and self.data["emotion_history_20s"]:
+            # Get emotion types from the first entry
+            return list(self.data["emotion_history_20s"][0]["emotion_percentage"].keys())
+        return []
 
     def _process_data(self):
         records = []
         for entry in self.data["emotion_history_20s"]:
             timestamp = pd.to_datetime(entry["timestamp"])
             emotions = entry["emotion_percentage"]
-            record = {"timestamp": timestamp, **emotions}
+            record = {"timestamp": timestamp}
+            for emotion_type in self.emotion_types:
+                record[emotion_type] = emotions.get(emotion_type, 0) # Use .get to handle missing emotions
             records.append(record)
         return pd.DataFrame(records)
 
@@ -22,20 +31,24 @@ class EmotionAnalyzer:
 
     def get_emotion_statistics(self):
         # Calculate mean percentage for each emotion
-        emotion_means = self.df[["happy", "neutral", "sad"]].mean().to_dict()
+        emotion_means = self.df[self.emotion_types].mean().to_dict()
 
         # Calculate overall percentage of each emotion across all timestamps
-        total_percentages = self.df[["happy", "neutral", "sad"]].sum().sum()
+        total_percentages = self.df[self.emotion_types].sum().sum()
         emotion_overall_percentages = {}
-        for emotion in ["happy", "neutral", "sad"]:
+        for emotion in self.emotion_types:
             emotion_overall_percentages[emotion] = (self.df[emotion].sum() / total_percentages) * 100 if total_percentages > 0 else 0
 
         # Identify most and least common emotions based on overall percentage
-        most_common_emotion = max(emotion_overall_percentages, key=emotion_overall_percentages.get)
-        least_common_emotion = min(emotion_overall_percentages, key=emotion_overall_percentages.get)
+        if emotion_overall_percentages:
+            most_common_emotion = max(emotion_overall_percentages, key=emotion_overall_percentages.get)
+            least_common_emotion = min(emotion_overall_percentages, key=emotion_overall_percentages.get)
+        else:
+            most_common_emotion = None
+            least_common_emotion = None
 
         # Calculate standard deviation for each emotion
-        emotion_std_dev = self.df[["happy", "neutral", "sad"]].std().to_dict()
+        emotion_std_dev = self.df[self.emotion_types].std().to_dict()
 
         return {
             "mean_percentages": emotion_means,
@@ -47,22 +60,22 @@ class EmotionAnalyzer:
 
     def get_emotion_distribution(self):
         # This method can be used to get the raw distribution for plotting
-        return self.df[["happy", "neutral", "sad"]]
+        return self.df[self.emotion_types]
 
     def get_temporal_analysis(self):
         # Calculate the rate of change for each emotion
         self.df["time_diff"] = self.df["timestamp"].diff().dt.total_seconds()
-        self.df["happy_change"] = self.df["happy"].diff() / self.df["time_diff"]
-        self.df["neutral_change"] = self.df["neutral"].diff() / self.df["time_diff"]
-        self.df["sad_change"] = self.df["sad"].diff() / self.df["time_diff"]
+        temporal_df = self.df.copy()
+        for emotion_type in self.emotion_types:
+            temporal_df[f"{emotion_type}_change"] = temporal_df[emotion_type].diff() / temporal_df["time_diff"]
 
         # Drop the first row which will have NaN for diff calculations
-        temporal_df = self.df.dropna(subset=["time_diff"])
+        temporal_df = temporal_df.dropna(subset=["time_diff"])
 
-        return temporal_df[["timestamp", "happy_change", "neutral_change", "sad_change"]]
+        return temporal_df[["timestamp"] + [f"{e}_change" for e in self.emotion_types]]
 
     def plot_emotion_distribution(self, filename="emotion_distribution.png"):
-        emotion_data = self.df[["happy", "neutral", "sad"]]
+        emotion_data = self.df[self.emotion_types]
         plt.figure(figsize=(10, 6))
         sns.boxplot(data=emotion_data)
         plt.title("توزيع المشاعر", fontname="Noto Sans Arabic")
@@ -74,13 +87,11 @@ class EmotionAnalyzer:
 
     def plot_temporal_emotions(self, filename="temporal_emotions.png"):
         plt.figure(figsize=(12, 7))
-        plt.plot(self.df["timestamp"], self.df["happy"], label="سعيد")
-        plt.plot(self.df["timestamp"], self.df["neutral"], label="محايد")
-        plt.plot(self.df["timestamp"], self.df["sad"], label="حزين")
+        for emotion_type in self.emotion_types:
+            plt.plot(self.df["timestamp"], self.df[emotion_type], label=emotion_type) # Using emotion_type as label
         plt.title("تغير المشاعر بمرور الوقت", fontname="Noto Sans Arabic")
         plt.xlabel("الوقت", fontname="Noto Sans Arabic")
         plt.ylabel("النسبة المئوية", fontname="Noto Sans Arabic")
-        plt.legend(prop={'family':'Noto Sans Arabic'}) # Set font for legend
         plt.grid(True)
         plt.tight_layout()
         plt.savefig(filename)
@@ -88,10 +99,8 @@ class EmotionAnalyzer:
         return filename
 
     def identify_patterns(self):
-        # For simplicity, let\'s identify if any emotion consistently increases or decreases
-        # This is a basic pattern identification, more complex patterns would require more data and advanced algorithms
         patterns = {}
-        for emotion in ["happy", "neutral", "sad"]:
+        for emotion in self.emotion_types:
             # Check for consistent increase
             if all(self.df[emotion].diff().dropna() >= 0):
                 patterns[emotion] = "Consistent Increase"
@@ -103,23 +112,11 @@ class EmotionAnalyzer:
         return patterns
 
     def predict_emotions(self):
-        # With very limited data points, building a robust prediction model is not feasible.
-        # This function serves as a placeholder to explain what would be needed.
-        # For real prediction, you would need:
-        # 1. A much larger dataset with more time points.
-        # 2. More features (e.g., context, events, user interactions).
-        # 3. Advanced time series models (e.g., ARIMA, Prophet, LSTM).
-        # 4. Proper training, validation, and testing splits.
-        
-        # For demonstration, we can just return the last known emotion percentages as a naive forecast.
         if not self.df.empty:
             last_entry = self.df.iloc[-1]
+            naive_forecast = {emotion: last_entry[emotion] for emotion in self.emotion_types}
             return {
-                "naive_forecast": {
-                    "happy": last_entry["happy"],
-                    "neutral": last_entry["neutral"],
-                    "sad": last_entry["sad"]
-                },
+                "naive_forecast": naive_forecast,
                 "note": "تنبؤ أولي بناءً على آخر نقطة بيانات بسبب محدودية البيانات. يتطلب نموذجًا أكثر تعقيدًا وبيانات أكبر لتنبؤات دقيقة."
             }
         else:
@@ -145,7 +142,8 @@ if __name__ == '__main__':
                 "emotion_percentage": {
                     "happy": 75,
                     "neutral": 15,
-                    "sad": 10
+                    "sad": 10,
+                    "angry": 5
                 }
             },
             {
@@ -153,7 +151,8 @@ if __name__ == '__main__':
                 "emotion_percentage": {
                     "happy": 85,
                     "neutral": 10,
-                    "sad": 5
+                    "sad": 5,
+                    "angry": 2
                 }
             },
             {
@@ -161,19 +160,19 @@ if __name__ == '__main__':
                 "emotion_percentage": {
                     "happy": 90,
                     "neutral": 8,
-                    "sad": 2
+                    "sad": 2,
+                    "surprised": 1
                 }
             }
         ]
     }
 
     analyzer = EmotionAnalyzer(sample_data)
-    print(analyzer.get_processed_data())
-    print(analyzer.get_emotion_statistics())
-    print(analyzer.get_temporal_analysis())
-    print(analyzer.identify_patterns())
-    print(analyzer.predict_emotions())
-    analyzer.plot_emotion_distribution()
-    analyzer.plot_temporal_emotions()
+    # print(type(analyzer.get_processed_data()))
+    # print(type(analyzer.get_emotion_statistics()))
+    # print(type(analyzer.get_temporal_analysis()))
+    # print(type(analyzer.identify_patterns()))
+    # print(type(analyzer.predict_emotions()))
+    # analyzer.plot_emotion_distribution()
+    # analyzer.plot_temporal_emotions()
     print(analyzer.get_full_analysis_json())
-
