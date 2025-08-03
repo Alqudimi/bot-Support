@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المستخدمين - نظام التعرف الذكي على الوجوه</title>
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    
+    <style>
+        :root {
+            --primary: #8A2BE2;
+            --secondary: #9370DB;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --light: #f0f0f0;
+            --gem-blue: #4169E1;
+            --gem-purple: #9932CC;
+            --gem-pink: #DA70D6;
+            --success: #32CD32;
+            --warning: #FFD700;
+            --danger: #FF4500;
+            --card-bg: rgba(30, 30, 40, 0.8);
+            --card-border: rgba(138, 43, 226, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.5s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--light);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .nav-bar {
+            background: rgba(40, 40, 60, 0.8);
+            padding: 15px 30px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: var(--light);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: var(--gem-purple);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.3);
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .users-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .users-title {
+            font-size: 2em;
+            color: var(--light);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .users-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 12px 45px 12px 20px;
+            border: 1px solid var(--card-border);
+            border-radius: 25px;
+            background: var(--card-bg);
+            color: var(--light);
+            font-size: 14px;
+            width: 300px;
+        }
+
+        .search-input::placeholder {
+            color: rgba(240, 240, 240, 0.6);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            color: var(--gem-pink);
+            pointer-events: none;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-select {
+            padding: 10px 15px;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            background: var(--card-bg);
+            color: var(--light);
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gem-purple), var(--primary));
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #00b894);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #ff7675);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--gem-pink), #ff6b6b);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #fdcb6e);
+            color: black;
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+
+        .stat-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+            opacity: 0.8;
+            position: relative;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            position: relative;
+        }
+
+        .users-table-container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(5px);
+            overflow-x: auto;
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: transparent;
+        }
+
+        .users-table th,
+        .users-table td {
+            padding: 15px;
+            text-align: right;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .users-table th {
+            background: rgba(138, 43, 226, 0.3);
+            color: var(--light);
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+
+        .users-table tr:hover {
+            background: rgba(138, 43, 226, 0.1);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-pink));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin: 0 auto;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-active {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-inactive {
+            background: var(--danger);
+            color: white;
+        }
+
+        .status-guest {
+            background: var(--warning);
+            color: black;
+        }
+
+        .status-registered {
+            background: var(--gem-blue);
+            color: white;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 15px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .pagination-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination-btn:hover,
+        .pagination-btn.active {
+            background: var(--gem-purple);
+            color: white;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            border: 1px solid var(--card-border);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            color: var(--light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close {
+            color: var(--light);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: var(--danger);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--light);
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            background: rgba(40, 40, 60, 0.5);
+            color: var(--light);
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gem-purple);
+            box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
+        }
+
+        .user-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .detail-item {
+            background: rgba(40, 40, 60, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+        }
+
+        .detail-label {
+            font-weight: bold;
+            color: var(--gem-pink);
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            color: var(--light);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .users-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .users-controls {
+                justify-content: center;
+            }
+            
+            .search-input {
+                width: 100%;
+            }
+            
+            .stats-cards {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="bi bi-people"></i>
+                إدارة المستخدمين
+            </h1>
+            <p>إدارة وتتبع جميع مستخدمي النظام</p>
+        </div>
+
+        <div class="nav-bar">
+            <div class="nav-links">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="bi bi-speedometer2"></i>
+                    لوحة التحكم
+                </a>
+                <a href="emotion_analysis_face_api.html" class="nav-link">
+                    <i class="bi bi-camera-video"></i>
+                    تحليل المشاعر
+                </a>
+                <a href="statistics.html" class="nav-link">
+                    <i class="bi bi-graph-up"></i>
+                    الإحصائيات
+                </a>
+                <a href="users.html" class="nav-link active">
+                    <i class="bi bi-people"></i>
+                    المستخدمون
+                </a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- إحصائيات المستخدمين -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="stat-number" id="totalUsers">0</div>
+                    <div class="stat-label">إجمالي المستخدمين</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <div class="stat-number" id="registeredUsers">0</div>
+                    <div class="stat-label">المستخدمون المسجلون</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-person-dash"></i>
+                    </div>
+                    <div class="stat-number" id="guestUsers">0</div>
+                    <div class="stat-label">المستخدمون الضيوف</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-activity"></i>
+                    </div>
+                    <div class="stat-number" id="activeToday">0</div>
+                    <div class="stat-label">النشطون اليوم</div>
+                </div>
+            </div>
+
+            <!-- رأس إدارة المستخدمين -->
+            <div class="users-header">
+                <div class="users-title">
+                    <i class="bi bi-list-ul"></i>
+                    قائمة المستخدمين
+                </div>
+                <div class="users-controls">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" class="search-input" placeholder="البحث عن مستخدم...">
+                        <i class="bi bi-search search-icon"></i>
+                    </div>
+                    <div class="filter-group">
+                        <label>النوع:</label>
+                        <select id="userTypeFilter" class="filter-select">
+                            <option value="all">الكل</option>
+                            <option value="registered">مسجل</option>
+                            <option value="guest">ضيف</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>الحالة:</label>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="all">الكل</option>
+                            <option value="active">نشط</option>
+                            <option value="inactive">غير نشط</option>
+                        </select>
+                    </div>
+                    <button id="refreshBtn" class="btn btn-primary">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        تحديث
+                    </button>
+                    <button id="exportBtn" class="btn btn-success">
+                        <i class="bi bi-download"></i>
+                        تصدير
+                    </button>
+                </div>
+            </div>
+
+            <!-- جدول المستخدمين -->
+            <div class="users-table-container">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>الصورة</th>
+                            <th>الاسم</th>
+                            <th>النوع</th>
+                            <th>الجنس</th>
+                            <th>العمر</th>
+                            <th>تاريخ التسجيل</th>
+                            <th>آخر نشاط</th>
+                            <th>الجلسات</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 40px;">
+                                <div class="loading-spinner"></div>
+                                جاري تحميل المستخدمين...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- التصفح -->
+                <div class="pagination" id="pagination">
+                    <button class="pagination-btn" id="prevBtn" disabled>
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <span id="pageInfo">صفحة 1 من 1</span>
+                    <button class="pagination-btn" id="nextBtn" disabled>
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تفاصيل المستخدم -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="bi bi-person-circle"></i>
+                    تفاصيل المستخدم
+                </h2>
+                <span class="close">&times;</span>
+            </div>
+            <div id="userModalContent">
+                <!-- سيتم ملء المحتوى ديناميكياً -->
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل المستخدم -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="bi bi-pencil-square"></i>
+                    تعديل المستخدم
+                </h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="editUserForm">
+                <div class="form-group">
+                    <label class="form-label">الاسم:</label>
+                    <input type="text" id="editUserName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">البريد الإلكتروني:</label>
+                    <input type="email" id="editUserEmail" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">الحالة:</label>
+                    <select id="editUserStatus" class="form-input">
+                        <option value="active">نشط</option>
+                        <option value="inactive">غير نشط</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editUserModal')">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات عامة
+        const API_BASE_URL = 'http://localhost:5000/api';
+        let currentPage = 1;
+        let totalPages = 1;
+        let allUsers = [];
+        let filteredUsers = [];
+        const usersPerPage = 10;
+
+        // تهيئة التطبيق
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeUsersPage();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', filterUsers);
+            document.getElementById('userTypeFilter').addEventListener('change', filterUsers);
+            document.getElementById('statusFilter').addEventListener('change', filterUsers);
+            document.getElementById('refreshBtn').addEventListener('click', loadUsers);
+            document.getElementById('exportBtn').addEventListener('click', exportUsers);
+            document.getElementById('prevBtn').addEventListener('click', () => changePage(-1));
+            document.getElementById('nextBtn').addEventListener('click', () => changePage(1));
+
+            // إغلاق النوافذ المنبثقة
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', function() {
+                    this.closest('.modal').style.display = 'none';
+                });
+            });
+
+            // إغلاق النافذة عند النقر خارجها
+            window.addEventListener('click', function(event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            });
+
+            // نموذج تعديل المستخدم
+            document.getElementById('editUserForm').addEventListener('submit', handleEditUser);
+        }
+
+        function initializeUsersPage() {
+            loadUserStats();
+            loadUsers();
+        }
+
+        async function loadUserStats() {
+            try {
+                // بيانات وهمية لإحصائيات المستخدمين
+                const stats = {
+                    total: 1256,
+                    registered: 892,
+                    guest: 364,
+                    activeToday: 187
+                };
+
+                document.getElementById('totalUsers').textContent = stats.total;
+                document.getElementById('registeredUsers').textContent = stats.registered;
+                document.getElementById('guestUsers').textContent = stats.guest;
+                document.getElementById('activeToday').textContent = stats.activeToday;
+
+            } catch (error) {
+                console.error('خطأ في تحميل إحصائيات المستخدمين:', error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const tableBody = document.getElementById('usersTableBody');
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 40px;">
+                            <div class="loading-spinner"></div>
+                            جاري تحميل المستخدمين...
+                        </td>
+                    </tr>
+                `;
+
+                // بيانات وهمية للمستخدمين
+                allUsers = [
+                    {
+                        id: 1,
+                        name: 'أحمد محمد',
+                        type: 'registered',
+                        gender: 'ذكر',
+                        age: 28,
+                        email: 'ahmed@example.com',
+                        registrationDate: '2025-01-15',
+                        lastActivity: '2025-08-02 14:30',
+                        sessions: 45,
+                        status: 'active'
+                    },
+                    {
+                        id: 2,
+                        name: 'فاطمة أحمد',
+                        type: 'registered',
+                        gender: 'أنثى',
+                        age: 25,
+                        email: 'fatima@example.com',
+                        registrationDate: '2025-01-20',
+                        lastActivity: '2025-08-02 13:15',
+                        sessions: 32,
+                        status: 'active'
+                    },
+                    {
+                        id: 3,
+                        name: 'ضيف_20250802_143022',
+                        type: 'guest',
+                        gender: 'ذكر',
+                        age: 35,
+                        email: '-',
+                        registrationDate: '2025-08-02',
+                        lastActivity: '2025-08-02 14:30',
+                        sessions: 1,
+                        status: 'active'
+                    },
+                    {
+                        id: 4,
+                        name: 'سارة علي',
+                        type: 'registered',
+                        gender: 'أنثى',
+                        age: 30,
+                        email: 'sara@example.com',
+                        registrationDate: '2025-01-10',
+                        lastActivity: '2025-08-01 16:45',
+                        sessions: 67,
+                        status: 'inactive'
+                    },
+                    {
+                        id: 5,
+                        name: 'محمد حسن',
+                        type: 'registered',
+                        gender: 'ذكر',
+                        age: 42,
+                        email: 'mohamed@example.com',
+                        registrationDate: '2024-12-05',
+                        lastActivity: '2025-08-02 12:20',
+                        sessions: 89,
+                        status: 'active'
+                    },
+                    {
+                        id: 6,
+                        name: 'ضيف_20250801_091530',
+                        type: 'guest',
+                        gender: 'أنثى',
+                        age: 22,
+                        email: '-',
+                        registrationDate: '2025-08-01',
+                        lastActivity: '2025-08-01 09:15',
+                        sessions: 1,
+                        status: 'inactive'
+                    },
+                    {
+                        id: 7,
+                        name: 'خالد أحمد',
+                        type: 'registered',
+                        gender: 'ذكر',
+                        age: 38,
+                        email: 'khalid@example.com',
+                        registrationDate: '2024-11-20',
+                        lastActivity: '2025-08-02 11:10',
+                        sessions: 156,
+                        status: 'active'
+                    },
+                    {
+                        id: 8,
+                        name: 'نور الدين',
+                        type: 'registered',
+                        gender: 'أنثى',
+                        age: 27,
+                        email: 'nour@example.com',
+                        registrationDate: '2025-02-01',
+                        lastActivity: '2025-07-30 18:30',
+                        sessions: 23,
+                        status: 'inactive'
+                    }
+                ];
+
+                filteredUsers = [...allUsers];
+                displayUsers();
+
+            } catch (error) {
+                console.error('خطأ في تحميل المستخدمين:', error);
+                document.getElementById('usersTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 40px; color: #ff4500;">
+                            خطأ في تحميل البيانات
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('userTypeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            filteredUsers = allUsers.filter(user => {
+                const matchesSearch = user.name.toLowerCase().includes(searchTerm) || 
+                                    user.email.toLowerCase().includes(searchTerm);
+                const matchesType = typeFilter === 'all' || user.type === typeFilter;
+                const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+
+                return matchesSearch && matchesType && matchesStatus;
+            });
+
+            currentPage = 1;
+            displayUsers();
+        }
+
+        function displayUsers() {
+            const startIndex = (currentPage - 1) * usersPerPage;
+            const endIndex = startIndex + usersPerPage;
+            const usersToShow = filteredUsers.slice(startIndex, endIndex);
+
+            totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
+            const tableBody = document.getElementById('usersTableBody');
+            
+            if (usersToShow.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 40px;">
+                            لا توجد نتائج مطابقة للبحث
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tableBody.innerHTML = usersToShow.map(user => `
+                    <tr>
+                        <td>
+                            <div class="user-avatar">
+                                ${user.name.charAt(0)}
+                            </div>
+                        </td>
+                        <td>${user.name}</td>
+                        <td>
+                            <span class="status-badge ${user.type === 'guest' ? 'status-guest' : 'status-registered'}">
+                                ${user.type === 'guest' ? 'ضيف' : 'مسجل'}
+                            </span>
+                        </td>
+                        <td>${user.gender}</td>
+                        <td>${user.age}</td>
+                        <td>${formatDate(user.registrationDate)}</td>
+                        <td>${formatDateTime(user.lastActivity)}</td>
+                        <td>${user.sessions}</td>
+                        <td>
+                            <span class="status-badge ${user.status === 'active' ? 'status-active' : 'status-inactive'}">
+                                ${user.status === 'active' ? 'نشط' : 'غير نشط'}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary btn-small" onclick="viewUser(${user.id})">
+                                    <i class="bi bi-eye"></i>
+                                    عرض
+                                </button>
+                                ${user.type === 'registered' ? `
+                                    <button class="btn btn-primary btn-small" onclick="editUser(${user.id})">
+                                        <i class="bi bi-pencil"></i>
+                                        تعديل
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-danger btn-small" onclick="deleteUser(${user.id})">
+                                    <i class="bi bi-trash"></i>
+                                    حذف
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            updatePagination();
+        }
+
+        function updatePagination() {
+            document.getElementById('pageInfo').textContent = `صفحة ${currentPage} من ${totalPages}`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+        }
+
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                displayUsers();
+            }
+        }
+
+        function viewUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+
+            const modalContent = document.getElementById('userModalContent');
+            modalContent.innerHTML = `
+                <div class="user-details">
+                    <div class="detail-item">
+                        <div class="detail-label">الاسم الكامل</div>
+                        <div class="detail-value">${user.name}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">نوع المستخدم</div>
+                        <div class="detail-value">${user.type === 'guest' ? 'ضيف' : 'مسجل'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">الجنس</div>
+                        <div class="detail-value">${user.gender}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">العمر</div>
+                        <div class="detail-value">${user.age} سنة</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">البريد الإلكتروني</div>
+                        <div class="detail-value">${user.email}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">تاريخ التسجيل</div>
+                        <div class="detail-value">${formatDate(user.registrationDate)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">آخر نشاط</div>
+                        <div class="detail-value">${formatDateTime(user.lastActivity)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">عدد الجلسات</div>
+                        <div class="detail-value">${user.sessions}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">الحالة</div>
+                        <div class="detail-value">
+                            <span class="status-badge ${user.status === 'active' ? 'status-active' : 'status-inactive'}">
+                                ${user.status === 'active' ? 'نشط' : 'غير نشط'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('userModal').style.display = 'block';
+        }
+
+        function editUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+
+            document.getElementById('editUserName').value = user.name;
+            document.getElementById('editUserEmail').value = user.email;
+            document.getElementById('editUserStatus').value = user.status;
+
+            document.getElementById('editUserForm').dataset.userId = userId;
+            document.getElementById('editUserModal').style.display = 'block';
+        }
+
+        function handleEditUser(event) {
+            event.preventDefault();
+            
+            const userId = parseInt(event.target.dataset.userId);
+            const userIndex = allUsers.findIndex(u => u.id === userId);
+            
+            if (userIndex !== -1) {
+                allUsers[userIndex].name = document.getElementById('editUserName').value;
+                allUsers[userIndex].email = document.getElementById('editUserEmail').value;
+                allUsers[userIndex].status = document.getElementById('editUserStatus').value;
+                
+                filterUsers(); // إعادة تطبيق الفلاتر وعرض البيانات المحدثة
+                closeModal('editUserModal');
+                
+                alert('تم تحديث بيانات المستخدم بنجاح');
+            }
+        }
+
+        function deleteUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+
+            if (confirm(`هل أنت متأكد من حذف المستخدم "${user.name}"؟`)) {
+                allUsers = allUsers.filter(u => u.id !== userId);
+                filterUsers();
+                alert('تم حذف المستخدم بنجاح');
+            }
+        }
+
+        function exportUsers() {
+            const dataToExport = filteredUsers.map(user => ({
+                الاسم: user.name,
+                النوع: user.type === 'guest' ? 'ضيف' : 'مسجل',
+                الجنس: user.gender,
+                العمر: user.age,
+                'البريد الإلكتروني': user.email,
+                'تاريخ التسجيل': user.registrationDate,
+                'آخر نشاط': user.lastActivity,
+                الجلسات: user.sessions,
+                الحالة: user.status === 'active' ? 'نشط' : 'غير نشط'
+            }));
+
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `users_export_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ar-SA');
+        }
+
+        function formatDateTime(dateTimeString) {
+            const date = new Date(dateTimeString);
+            return date.toLocaleString('ar-SA');
+        }
+    </script>
+</body>
+</html>
+

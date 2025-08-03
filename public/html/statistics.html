@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإحصائيات - نظام التعرف الذكي على الوجوه</title>
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <script src="api_client.js"></script>
+    
+    <style>
+        :root {
+            --primary: #8A2BE2;
+            --secondary: #9370DB;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --light: #f0f0f0;
+            --gem-blue: #4169E1;
+            --gem-purple: #9932CC;
+            --gem-pink: #DA70D6;
+            --success: #32CD32;
+            --warning: #FFD700;
+            --danger: #FF4500;
+            --card-bg: rgba(30, 30, 40, 0.8);
+            --card-border: rgba(138, 43, 226, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.5s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--light);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .nav-bar {
+            background: rgba(40, 40, 60, 0.8);
+            padding: 15px 30px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: var(--light);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: var(--gem-purple);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.3);
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .stats-title {
+            font-size: 2em;
+            color: var(--light);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stats-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-select, .date-input {
+            padding: 10px 15px;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            background: var(--card-bg);
+            color: var(--light);
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gem-purple), var(--primary));
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #00b894);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--gem-pink), #ff6b6b);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+
+        .stat-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            opacity: 0.8;
+            position: relative;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+            position: relative;
+        }
+
+        .stat-change {
+            font-size: 0.9em;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .stat-change.positive {
+            color: #32CD32;
+        }
+
+        .stat-change.negative {
+            color: #FF4500;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(5px);
+        }
+
+        .chart-header {
+            color: var(--light);
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .chart-header i {
+            color: var(--gem-pink);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .large-chart {
+            height: 400px;
+        }
+
+        .emotion-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .emotion-stat {
+            background: rgba(40, 40, 60, 0.5);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid var(--card-border);
+        }
+
+        .emotion-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .emotion-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .emotion-percentage {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--gem-pink);
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(5px);
+            margin-top: 30px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .summary-item {
+            background: rgba(40, 40, 60, 0.5);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid var(--card-border);
+        }
+
+        .summary-title {
+            font-weight: bold;
+            color: var(--gem-pink);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-value {
+            font-size: 1.2em;
+            color: var(--light);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stats-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .stats-controls {
+                justify-content: center;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="bi bi-graph-up"></i>
+                الإحصائيات والتحليلات
+            </h1>
+            <p>تحليل شامل لبيانات المشاعر والاستخدام</p>
+        </div>
+
+        <div class="nav-bar">
+            <div class="nav-links">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="bi bi-speedometer2"></i>
+                    لوحة التحكم
+                </a>
+                <a href="emotion_analysis_face_api.html" class="nav-link">
+                    <i class="bi bi-camera-video"></i>
+                    تحليل المشاعر
+                </a>
+                <a href="statistics.html" class="nav-link active">
+                    <i class="bi bi-graph-up"></i>
+                    الإحصائيات
+                </a>
+                <a href="users.html" class="nav-link">
+                    <i class="bi bi-people"></i>
+                    المستخدمون
+                </a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- رأس الإحصائيات -->
+            <div class="stats-header">
+                <div class="stats-title">
+                    <i class="bi bi-bar-chart"></i>
+                    تحليل البيانات
+                </div>
+                <div class="stats-controls">
+                    <div class="filter-group">
+                        <label>الفترة:</label>
+                        <select id="periodFilter" class="filter-select">
+                            <option value="today">اليوم</option>
+                            <option value="week" selected>هذا الأسبوع</option>
+                            <option value="month">هذا الشهر</option>
+                            <option value="year">هذا العام</option>
+                            <option value="custom">فترة مخصصة</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" id="customDateRange" style="display: none;">
+                        <input type="date" id="startDate" class="date-input">
+                        <span>إلى</span>
+                        <input type="date" id="endDate" class="date-input">
+                    </div>
+                    <button id="refreshBtn" class="btn btn-primary">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        تحديث
+                    </button>
+                    <button id="exportBtn" class="btn btn-success">
+                        <i class="bi bi-download"></i>
+                        تصدير
+                    </button>
+                </div>
+            </div>
+
+            <!-- الإحصائيات السريعة -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-emoji-smile"></i>
+                    </div>
+                    <div class="stat-number" id="totalEmotionAnalyses">0</div>
+                    <div class="stat-label">تحليل المشاعر</div>
+                    <div class="stat-change positive" id="emotionAnalysesChange">+12% من الأسبوع الماضي</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-clock"></i>
+                    </div>
+                    <div class="stat-number" id="avgSessionDuration">0</div>
+                    <div class="stat-label">متوسط مدة الجلسة (دقيقة)</div>
+                    <div class="stat-change positive" id="sessionDurationChange">+5% من الأسبوع الماضي</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-eye"></i>
+                    </div>
+                    <div class="stat-number" id="faceDetectionAccuracy">0%</div>
+                    <div class="stat-label">دقة كشف الوجوه</div>
+                    <div class="stat-change positive" id="accuracyChange">+2% من الأسبوع الماضي</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="stat-number" id="uniqueUsers">0</div>
+                    <div class="stat-label">المستخدمون الفريدون</div>
+                    <div class="stat-change positive" id="uniqueUsersChange">+8% من الأسبوع الماضي</div>
+                </div>
+            </div>
+
+            <!-- الرسوم البيانية -->
+            <div class="charts-grid">
+                <!-- توزيع المشاعر -->
+                <div class="chart-card">
+                    <h3 class="chart-header">
+                        <i class="bi bi-pie-chart"></i>
+                        توزيع المشاعر
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="emotionDistributionChart"></canvas>
+                    </div>
+                    <div class="emotion-stats">
+                        <div class="emotion-stat">
+                            <div class="emotion-icon">😊</div>
+                            <div class="emotion-name">سعيد</div>
+                            <div class="emotion-percentage" id="happyPercent">0%</div>
+                        </div>
+                        <div class="emotion-stat">
+                            <div class="emotion-icon">😢</div>
+                            <div class="emotion-name">حزين</div>
+                            <div class="emotion-percentage" id="sadPercent">0%</div>
+                        </div>
+                        <div class="emotion-stat">
+                            <div class="emotion-icon">😠</div>
+                            <div class="emotion-name">غاضب</div>
+                            <div class="emotion-percentage" id="angryPercent">0%</div>
+                        </div>
+                        <div class="emotion-stat">
+                            <div class="emotion-icon">😐</div>
+                            <div class="emotion-name">محايد</div>
+                            <div class="emotion-percentage" id="neutralPercent">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- الاتجاهات الزمنية -->
+                <div class="chart-card">
+                    <h3 class="chart-header">
+                        <i class="bi bi-graph-up"></i>
+                        اتجاهات المشاعر
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="emotionTrendsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- رسوم بيانية إضافية -->
+            <div class="charts-grid">
+                <!-- النشاط اليومي -->
+                <div class="chart-card">
+                    <h3 class="chart-header">
+                        <i class="bi bi-calendar-week"></i>
+                        النشاط اليومي
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="dailyActivityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- توزيع العمر والجنس -->
+                <div class="chart-card">
+                    <h3 class="chart-header">
+                        <i class="bi bi-person-badge"></i>
+                        التوزيع الديموغرافي
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="demographicsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- رسم بياني كبير للتحليل المتقدم -->
+            <div class="chart-card">
+                <h3 class="chart-header">
+                    <i class="bi bi-graph-down"></i>
+                    تحليل متقدم للمشاعر عبر الوقت
+                </h3>
+                <div class="chart-container large-chart">
+                    <canvas id="advancedAnalysisChart"></canvas>
+                </div>
+            </div>
+
+            <!-- ملخص الإحصائيات -->
+            <div class="summary-card">
+                <h3 class="chart-header">
+                    <i class="bi bi-clipboard-data"></i>
+                    ملخص الإحصائيات
+                </h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-title">
+                            <i class="bi bi-trophy"></i>
+                            أكثر المشاعر شيوعاً
+                        </div>
+                        <div class="summary-value" id="mostCommonEmotion">سعيد (45%)</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-title">
+                            <i class="bi bi-clock-history"></i>
+                            أفضل وقت للنشاط
+                        </div>
+                        <div class="summary-value" id="peakActivityTime">2:00 - 4:00 مساءً</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-title">
+                            <i class="bi bi-calendar-date"></i>
+                            أكثر الأيام نشاطاً
+                        </div>
+                        <div class="summary-value" id="mostActiveDay">الثلاثاء</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-title">
+                            <i class="bi bi-speedometer"></i>
+                            متوسط دقة التحليل
+                        </div>
+                        <div class="summary-value" id="avgAnalysisAccuracy">92.5%</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-title">
+                            <i class="bi bi-person-check"></i>
+                            معدل المستخدمين العائدين
+                        </div>
+                        <div class="summary-value" id="returningUsersRate">68%</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-title">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            نمو الاستخدام الشهري
+                        </div>
+                        <div class="summary-value" id="monthlyGrowth">+15.3%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات عامة
+        const API_BASE_URL = 'http://localhost:5000/api';
+        let charts = {};
+
+        // تهيئة التطبيق
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeStatistics();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('periodFilter').addEventListener('change', handlePeriodChange);
+            document.getElementById('refreshBtn').addEventListener('click', refreshAllData);
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+        }
+
+        function handlePeriodChange() {
+            const period = document.getElementById('periodFilter').value;
+            const customDateRange = document.getElementById('customDateRange');
+            
+            if (period === 'custom') {
+                customDateRange.style.display = 'flex';
+                customDateRange.style.gap = '10px';
+            } else {
+                customDateRange.style.display = 'none';
+                loadAllStatistics();
+            }
+        }
+
+        function initializeStatistics() {
+            loadQuickStats();
+            loadEmotionDistribution();
+            loadEmotionTrends();
+            loadDailyActivity();
+            loadDemographics();
+            loadAdvancedAnalysis();
+            loadSummaryStats();
+        }
+
+        function loadQuickStats() {
+            // بيانات وهمية للإحصائيات السريعة
+            document.getElementById('totalEmotionAnalyses').textContent = '12,847';
+            document.getElementById('avgSessionDuration').textContent = '18.5';
+            document.getElementById('faceDetectionAccuracy').textContent = '94';
+            document.getElementById('uniqueUsers').textContent = '1,256';
+        }
+
+        function loadEmotionDistribution() {
+            const ctx = document.getElementById('emotionDistributionChart').getContext('2d');
+            
+            const emotionData = {
+                happy: 45,
+                neutral: 25,
+                sad: 12,
+                angry: 8,
+                surprised: 6,
+                fearful: 3,
+                disgusted: 1
+            };
+
+            // تحديث النسب المئوية
+            document.getElementById('happyPercent').textContent = `${emotionData.happy}%`;
+            document.getElementById('sadPercent').textContent = `${emotionData.sad}%`;
+            document.getElementById('angryPercent').textContent = `${emotionData.angry}%`;
+            document.getElementById('neutralPercent').textContent = `${emotionData.neutral}%`;
+
+            charts.emotionDistribution = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['سعيد', 'محايد', 'حزين', 'غاضب', 'متفاجئ', 'خائف', 'مشمئز'],
+                    datasets: [{
+                        data: Object.values(emotionData),
+                        backgroundColor: [
+                            '#FFD700',
+                            '#A9A9A9',
+                            '#1E90FF',
+                            '#FF4500',
+                            '#FF8C00',
+                            '#9932CC',
+                            '#32CD32'
+                        ],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#f0f0f0',
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadEmotionTrends() {
+            const ctx = document.getElementById('emotionTrendsChart').getContext('2d');
+            
+            // بيانات وهمية للاتجاهات
+            const labels = [];
+            const happyData = [];
+            const sadData = [];
+            const angryData = [];
+            
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('ar-SA', { weekday: 'short' }));
+                happyData.push(Math.floor(Math.random() * 30) + 40);
+                sadData.push(Math.floor(Math.random() * 15) + 5);
+                angryData.push(Math.floor(Math.random() * 10) + 3);
+            }
+
+            charts.emotionTrends = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'سعيد',
+                            data: happyData,
+                            borderColor: '#FFD700',
+                            backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'حزين',
+                            data: sadData,
+                            borderColor: '#1E90FF',
+                            backgroundColor: 'rgba(30, 144, 255, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'غاضب',
+                            data: angryData,
+                            borderColor: '#FF4500',
+                            backgroundColor: 'rgba(255, 69, 0, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f0f0f0'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#f0f0f0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#f0f0f0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadDailyActivity() {
+            const ctx = document.getElementById('dailyActivityChart').getContext('2d');
+            
+            const hours = [];
+            const activityData = [];
+            
+            for (let i = 0; i < 24; i++) {
+                hours.push(`${i}:00`);
+                // محاكاة نشاط أعلى في ساعات النهار
+                if (i >= 8 && i <= 18) {
+                    activityData.push(Math.floor(Math.random() * 50) + 30);
+                } else {
+                    activityData.push(Math.floor(Math.random() * 20) + 5);
+                }
+            }
+
+            charts.dailyActivity = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'عدد الجلسات',
+                        data: activityData,
+                        backgroundColor: 'rgba(138, 43, 226, 0.7)',
+                        borderColor: '#8A2BE2',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f0f0f0'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#f0f0f0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#f0f0f0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadDemographics() {
+            const ctx = document.getElementById('demographicsChart').getContext('2d');
+            
+            charts.demographics = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['18-25', '26-35', '36-45', '46-55', '55+'],
+                    datasets: [
+                        {
+                            label: 'ذكور',
+                            data: [120, 180, 150, 90, 60],
+                            backgroundColor: 'rgba(30, 144, 255, 0.7)',
+                            borderColor: '#1E90FF',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'إناث',
+                            data: [140, 200, 170, 110, 80],
+                            backgroundColor: 'rgba(255, 105, 180, 0.7)',
+                            borderColor: '#FF69B4',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f0f0f0'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#f0f0f0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#f0f0f0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadAdvancedAnalysis() {
+            const ctx = document.getElementById('advancedAnalysisChart').getContext('2d');
+            
+            // بيانات متقدمة للتحليل
+            const labels = [];
+            const datasets = [];
+            const emotions = ['happy', 'sad', 'angry', 'neutral', 'surprised'];
+            const colors = ['#FFD700', '#1E90FF', '#FF4500', '#A9A9A9', '#FF8C00'];
+            
+            // إنشاء تسميات للأيام الـ 30 الماضية
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' }));
+            }
+            
+            // إنشاء بيانات لكل مشاعر
+            emotions.forEach((emotion, index) => {
+                const data = [];
+                for (let i = 0; i < 30; i++) {
+                    data.push(Math.floor(Math.random() * 40) + 10);
+                }
+                
+                datasets.push({
+                    label: getEmotionArabicName(emotion),
+                    data: data,
+                    borderColor: colors[index],
+                    backgroundColor: colors[index] + '20',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4
+                });
+            });
+
+            charts.advancedAnalysis = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f0f0f0'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#f0f0f0',
+                                maxTicksLimit: 10
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#f0f0f0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadSummaryStats() {
+            // تحديث ملخص الإحصائيات
+            document.getElementById('mostCommonEmotion').textContent = 'سعيد (45%)';
+            document.getElementById('peakActivityTime').textContent = '2:00 - 4:00 مساءً';
+            document.getElementById('mostActiveDay').textContent = 'الثلاثاء';
+            document.getElementById('avgAnalysisAccuracy').textContent = '92.5%';
+            document.getElementById('returningUsersRate').textContent = '68%';
+            document.getElementById('monthlyGrowth').textContent = '+15.3%';
+        }
+
+        function getEmotionArabicName(emotion) {
+            const names = {
+                'happy': 'سعيد',
+                'sad': 'حزين',
+                'angry': 'غاضب',
+                'neutral': 'محايد',
+                'surprised': 'متفاجئ',
+                'fearful': 'خائف',
+                'disgusted': 'مشمئز'
+            };
+            return names[emotion] || emotion;
+        }
+
+        function refreshAllData() {
+            // إظهار مؤشر التحميل
+            const refreshBtn = document.getElementById('refreshBtn');
+            const originalText = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<div class="loading-spinner"></div> جاري التحديث...';
+            refreshBtn.disabled = true;
+
+            // محاكاة تحديث البيانات
+            setTimeout(() => {
+                loadAllStatistics();
+                refreshBtn.innerHTML = originalText;
+                refreshBtn.disabled = false;
+            }, 2000);
+        }
+
+        function loadAllStatistics() {
+            loadQuickStats();
+            
+            // تدمير الرسوم البيانية الموجودة وإعادة إنشائها
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            
+            loadEmotionDistribution();
+            loadEmotionTrends();
+            loadDailyActivity();
+            loadDemographics();
+            loadAdvancedAnalysis();
+            loadSummaryStats();
+        }
+
+        function exportData() {
+            // محاكاة تصدير البيانات
+            const data = {
+                period: document.getElementById('periodFilter').value,
+                timestamp: new Date().toISOString(),
+                stats: {
+                    totalEmotionAnalyses: document.getElementById('totalEmotionAnalyses').textContent,
+                    avgSessionDuration: document.getElementById('avgSessionDuration').textContent,
+                    faceDetectionAccuracy: document.getElementById('faceDetectionAccuracy').textContent,
+                    uniqueUsers: document.getElementById('uniqueUsers').textContent
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `emotion_analysis_stats_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
+

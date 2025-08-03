@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - نظام التعرف الذكي على الوجوه</title>
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary: #8A2BE2;
+            --secondary: #9370DB;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --light: #f0f0f0;
+            --gem-blue: #4169E1;
+            --gem-purple: #9932CC;
+            --gem-pink: #DA70D6;
+            --success: #32CD32;
+            --warning: #FFD700;
+            --danger: #FF4500;
+            --card-bg: rgba(30, 30, 40, 0.8);
+            --card-border: rgba(138, 43, 226, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.5s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--light);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .nav-bar {
+            background: rgba(40, 40, 60, 0.8);
+            padding: 15px 30px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: var(--light);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: var(--gem-purple);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.3);
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(5px);
+        }
+
+        .card-header {
+            color: var(--light);
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .card-header i {
+            color: var(--gem-pink);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+            position: relative;
+        }
+
+        .stat-icon {
+            font-size: 2em;
+            margin-bottom: 15px;
+            opacity: 0.8;
+            position: relative;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(40, 40, 60, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 15px;
+            text-align: right;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-table th {
+            background: var(--gem-purple);
+            color: white;
+            font-weight: bold;
+        }
+
+        .data-table tr:hover {
+            background: rgba(138, 43, 226, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gem-purple), var(--primary));
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #00b894);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #ff7675);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--gem-pink), #ff6b6b);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-select {
+            padding: 8px 15px;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            background: var(--card-bg);
+            color: var(--light);
+            font-size: 14px;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-active {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-inactive {
+            background: var(--danger);
+            color: white;
+        }
+
+        .status-guest {
+            background: var(--warning);
+            color: black;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="bi bi-speedometer2"></i>
+                لوحة التحكم
+            </h1>
+            <p>مراقبة وإدارة نظام التعرف الذكي على الوجوه</p>
+        </div>
+
+        <div class="nav-bar">
+            <div class="nav-links">
+                <a href="dashboard.html" class="nav-link active">
+                    <i class="bi bi-speedometer2"></i>
+                    لوحة التحكم
+                </a>
+                <a href="emotion_analysis_face_api.html" class="nav-link">
+                    <i class="bi bi-camera-video"></i>
+                    تحليل المشاعر
+                </a>
+                <a href="statistics.html" class="nav-link">
+                    <i class="bi bi-graph-up"></i>
+                    الإحصائيات
+                </a>
+                <a href="users.html" class="nav-link">
+                    <i class="bi bi-people"></i>
+                    المستخدمون
+                </a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- الإحصائيات السريعة -->
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="stat-number" id="totalUsers">0</div>
+                    <div class="stat-label">إجمالي المستخدمين</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <div class="stat-number" id="activeUsers">0</div>
+                    <div class="stat-label">المستخدمون النشطون اليوم</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-camera2"></i>
+                    </div>
+                    <div class="stat-number" id="totalSnapshots">0</div>
+                    <div class="stat-label">إجمالي اللقطات</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div class="stat-number" id="totalSessions">0</div>
+                    <div class="stat-label">إجمالي الجلسات</div>
+                </div>
+            </div>
+
+            <!-- الرسوم البيانية والتحليلات -->
+            <div class="dashboard-grid">
+                <!-- توزيع المشاعر -->
+                <div class="card">
+                    <h3 class="card-header">
+                        <i class="bi bi-pie-chart"></i>
+                        توزيع المشاعر
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="emotionChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- النشاط اليومي -->
+                <div class="card">
+                    <h3 class="card-header">
+                        <i class="bi bi-graph-up"></i>
+                        النشاط اليومي
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الجلسات النشطة -->
+            <div class="card">
+                <h3 class="card-header">
+                    <i class="bi bi-activity"></i>
+                    الجلسات النشطة
+                </h3>
+                
+                <div class="controls">
+                    <button id="refreshBtn" class="btn btn-primary">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        تحديث
+                    </button>
+                    <div class="filter-group">
+                        <label>الفترة:</label>
+                        <select id="periodFilter" class="filter-select">
+                            <option value="today">اليوم</option>
+                            <option value="week">هذا الأسبوع</option>
+                            <option value="month">هذا الشهر</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>المستخدم</th>
+                                <th>النوع</th>
+                                <th>وقت البداية</th>
+                                <th>المدة</th>
+                                <th>اللقطات</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessionsTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px;">
+                                    <div class="loading-spinner"></div>
+                                    جاري تحميل البيانات...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- سجل النظام -->
+            <div class="card">
+                <h3 class="card-header">
+                    <i class="bi bi-journal-text"></i>
+                    سجل النظام
+                </h3>
+                
+                <div class="controls">
+                    <div class="filter-group">
+                        <label>المستوى:</label>
+                        <select id="logLevelFilter" class="filter-select">
+                            <option value="all">الكل</option>
+                            <option value="info">معلومات</option>
+                            <option value="warning">تحذيرات</option>
+                            <option value="error">أخطاء</option>
+                        </select>
+                    </div>
+                    <button id="clearLogsBtn" class="btn btn-danger">
+                        <i class="bi bi-trash"></i>
+                        مسح السجل
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>الوقت</th>
+                                <th>المستوى</th>
+                                <th>النوع</th>
+                                <th>الرسالة</th>
+                                <th>المستخدم</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 40px;">
+                                    <div class="loading-spinner"></div>
+                                    جاري تحميل السجل...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات عامة
+        const API_BASE_URL = 'http://localhost:5000/api';
+        let emotionChart, activityChart;
+        let refreshInterval;
+
+        // تهيئة التطبيق
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            setupEventListeners();
+            startAutoRefresh();
+        });
+
+        function initializeDashboard() {
+            loadSystemStats();
+            loadEmotionChart();
+            loadActivityChart();
+            loadActiveSessions();
+            loadSystemLogs();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('refreshBtn').addEventListener('click', refreshData);
+            document.getElementById('periodFilter').addEventListener('change', loadActiveSessions);
+            document.getElementById('logLevelFilter').addEventListener('change', loadSystemLogs);
+            document.getElementById('clearLogsBtn').addEventListener('click', clearSystemLogs);
+        }
+
+        function startAutoRefresh() {
+            // تحديث البيانات كل 30 ثانية
+            refreshInterval = setInterval(refreshData, 30000);
+        }
+
+        async function loadSystemStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/stats/system`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const stats = data.system_stats;
+                    
+                    document.getElementById('totalUsers').textContent = stats.total_users;
+                    document.getElementById('activeUsers').textContent = stats.active_users_today;
+                    document.getElementById('totalSnapshots').textContent = stats.total_snapshots;
+                    document.getElementById('totalSessions').textContent = stats.total_sessions;
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل إحصائيات النظام:', error);
+            }
+        }
+
+        async function loadEmotionChart() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/stats/system`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const emotions = data.system_stats.emotion_distribution;
+                    
+                    const ctx = document.getElementById('emotionChart').getContext('2d');
+                    
+                    if (emotionChart) {
+                        emotionChart.destroy();
+                    }
+                    
+                    emotionChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['سعيد', 'حزين', 'غاضب', 'متفاجئ', 'خائف', 'مشمئز', 'محايد'],
+                            datasets: [{
+                                data: [
+                                    emotions.happy || 0,
+                                    emotions.sad || 0,
+                                    emotions.angry || 0,
+                                    emotions.surprised || 0,
+                                    emotions.fearful || 0,
+                                    emotions.disgusted || 0,
+                                    emotions.neutral || 0
+                                ],
+                                backgroundColor: [
+                                    '#FFD700',
+                                    '#1E90FF',
+                                    '#FF4500',
+                                    '#FF8C00',
+                                    '#9932CC',
+                                    '#32CD32',
+                                    '#A9A9A9'
+                                ],
+                                borderWidth: 2,
+                                borderColor: '#fff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: '#f0f0f0',
+                                        padding: 15
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل مخطط المشاعر:', error);
+            }
+        }
+
+        async function loadActivityChart() {
+            try {
+                // بيانات وهمية للنشاط اليومي
+                const labels = [];
+                const data = [];
+                
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    labels.push(date.toLocaleDateString('ar-SA', { weekday: 'short' }));
+                    data.push(Math.floor(Math.random() * 100) + 20);
+                }
+                
+                const ctx = document.getElementById('activityChart').getContext('2d');
+                
+                if (activityChart) {
+                    activityChart.destroy();
+                }
+                
+                activityChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'عدد الجلسات',
+                            data: data,
+                            borderColor: '#8A2BE2',
+                            backgroundColor: 'rgba(138, 43, 226, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#f0f0f0'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: {
+                                    color: '#f0f0f0'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    color: '#f0f0f0'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('خطأ في تحميل مخطط النشاط:', error);
+            }
+        }
+
+        async function loadActiveSessions() {
+            try {
+                const tableBody = document.getElementById('sessionsTableBody');
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px;">
+                            <div class="loading-spinner"></div>
+                            جاري تحميل الجلسات...
+                        </td>
+                    </tr>
+                `;
+
+                // بيانات وهمية للجلسات النشطة
+                const sessions = [
+                    {
+                        id: 1,
+                        user_name: 'أحمد محمد',
+                        user_type: 'مسجل',
+                        start_time: new Date(Date.now() - 1800000).toLocaleString('ar-SA'),
+                        duration: '30:15',
+                        snapshots: 45,
+                        status: 'نشط'
+                    },
+                    {
+                        id: 2,
+                        user_name: 'ضيف_20250802_143022',
+                        user_type: 'ضيف',
+                        start_time: new Date(Date.now() - 900000).toLocaleString('ar-SA'),
+                        duration: '15:30',
+                        snapshots: 23,
+                        status: 'نشط'
+                    },
+                    {
+                        id: 3,
+                        user_name: 'فاطمة أحمد',
+                        user_type: 'مسجل',
+                        start_time: new Date(Date.now() - 3600000).toLocaleString('ar-SA'),
+                        duration: '60:00',
+                        snapshots: 120,
+                        status: 'منتهي'
+                    }
+                ];
+
+                tableBody.innerHTML = sessions.map(session => `
+                    <tr>
+                        <td>${session.user_name}</td>
+                        <td>
+                            <span class="status-badge ${session.user_type === 'ضيف' ? 'status-guest' : 'status-active'}">
+                                ${session.user_type}
+                            </span>
+                        </td>
+                        <td>${session.start_time}</td>
+                        <td>${session.duration}</td>
+                        <td>${session.snapshots}</td>
+                        <td>
+                            <span class="status-badge ${session.status === 'نشط' ? 'status-active' : 'status-inactive'}">
+                                ${session.status}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="viewSession(${session.id})">
+                                <i class="bi bi-eye"></i>
+                                عرض
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('خطأ في تحميل الجلسات النشطة:', error);
+                document.getElementById('sessionsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #ff4500;">
+                            خطأ في تحميل البيانات
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function loadSystemLogs() {
+            try {
+                const tableBody = document.getElementById('logsTableBody');
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px;">
+                            <div class="loading-spinner"></div>
+                            جاري تحميل السجل...
+                        </td>
+                    </tr>
+                `;
+
+                // بيانات وهمية لسجل النظام
+                const logs = [
+                    {
+                        timestamp: new Date().toLocaleString('ar-SA'),
+                        level: 'info',
+                        event_type: 'user_login',
+                        message: 'تسجيل دخول مستخدم جديد',
+                        user_name: 'أحمد محمد'
+                    },
+                    {
+                        timestamp: new Date(Date.now() - 300000).toLocaleString('ar-SA'),
+                        level: 'success',
+                        event_type: 'emotion_analysis',
+                        message: 'تم تحليل المشاعر بنجاح',
+                        user_name: 'فاطمة أحمد'
+                    },
+                    {
+                        timestamp: new Date(Date.now() - 600000).toLocaleString('ar-SA'),
+                        level: 'warning',
+                        event_type: 'face_detection',
+                        message: 'انخفاض دقة كشف الوجه',
+                        user_name: 'ضيف_20250802_143022'
+                    },
+                    {
+                        timestamp: new Date(Date.now() - 900000).toLocaleString('ar-SA'),
+                        level: 'error',
+                        event_type: 'system_error',
+                        message: 'خطأ في الاتصال بقاعدة البيانات',
+                        user_name: '-'
+                    }
+                ];
+
+                const levelFilter = document.getElementById('logLevelFilter').value;
+                const filteredLogs = levelFilter === 'all' ? logs : logs.filter(log => log.level === levelFilter);
+
+                tableBody.innerHTML = filteredLogs.map(log => `
+                    <tr>
+                        <td>${log.timestamp}</td>
+                        <td>
+                            <span class="status-badge ${getLevelClass(log.level)}">
+                                ${getLevelText(log.level)}
+                            </span>
+                        </td>
+                        <td>${log.event_type}</td>
+                        <td>${log.message}</td>
+                        <td>${log.user_name}</td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('خطأ في تحميل سجل النظام:', error);
+                document.getElementById('logsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: #ff4500;">
+                            خطأ في تحميل السجل
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function getLevelClass(level) {
+            switch(level) {
+                case 'info': return 'status-active';
+                case 'success': return 'status-active';
+                case 'warning': return 'status-guest';
+                case 'error': return 'status-inactive';
+                default: return 'status-active';
+            }
+        }
+
+        function getLevelText(level) {
+            switch(level) {
+                case 'info': return 'معلومات';
+                case 'success': return 'نجح';
+                case 'warning': return 'تحذير';
+                case 'error': return 'خطأ';
+                default: return level;
+            }
+        }
+
+        function refreshData() {
+            loadSystemStats();
+            loadEmotionChart();
+            loadActivityChart();
+            loadActiveSessions();
+            loadSystemLogs();
+        }
+
+        function viewSession(sessionId) {
+            alert(`عرض تفاصيل الجلسة رقم: ${sessionId}`);
+        }
+
+        async function clearSystemLogs() {
+            if (confirm('هل أنت متأكد من مسح سجل النظام؟')) {
+                try {
+                    // هنا يمكن إضافة استدعاء API لمسح السجل
+                    alert('تم مسح سجل النظام بنجاح');
+                    loadSystemLogs();
+                } catch (error) {
+                    alert('فشل في مسح سجل النظام');
+                }
+            }
+        }
+
+        // تنظيف الموارد عند إغلاق الصفحة
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
+

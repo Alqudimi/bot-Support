@@ -1,315 +1,372 @@
-import uuid
-from flask_sqlalchemy import SQLAlchemy 
-from datetime import datetime
-from sqlalchemy import JSON
-from sqlalchemy.sql import exists
 
+
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime, timedelta
+import json
+import uuid
 
 db = SQLAlchemy()
 
 class User(db.Model):
     __tablename__ = 'users'
     
-    user_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = db.Column(db.String(100), nullable=False)
-    gender = db.Column(db.String(20), nullable=False)
-    approximate_age = db.Column(db.Integer)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # العلاقات
-    messages = db.relationship('Message', back_populates='user', cascade='all, delete-orphan')
-    emotion_histories = db.relationship('EmotionHistory', back_populates='user')
-    
-    
-
-class Message(db.Model):
-    __tablename__ = 'messages'
-    
-    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = db.Column(db.String(50), db.ForeignKey('users.user_id'), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    dominant_emotion = db.Column(db.String(50))
-    
-    
-    user = db.relationship('User', back_populates='messages')
-    emotion_history = db.relationship('EmotionHistory', back_populates='message', cascade='all, delete-orphan')
-    
-
-class EmotionHistory(db.Model):
-    __tablename__ = 'emotion_history'
     id = db.Column(db.Integer, primary_key=True)
-    message_id = db.Column(db.String(36), db.ForeignKey('messages.id'), nullable=False)
-    user_id = db.Column(db.String(50), db.ForeignKey('users.user_id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)
+    password_hash = db.Column(db.String(255), nullable=True)
+    
+    detected_gender = db.Column(db.String(20), nullable=True)  
+    detected_age = db.Column(db.Integer, nullable=True)
+    gender_confidence = db.Column(db.Float, nullable=True)
+    age_confidence = db.Column(db.Float, nullable=True)
+    
+    is_guest = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    sessions = db.relationship('UserSession', backref='user', lazy=True, cascade='all, delete-orphan')
+    emotion_snapshots = db.relationship('EmotionSnapshot', backref='user', lazy=True, cascade='all, delete-orphan')
+    face_encodings = db.relationship('FaceEncoding', backref='user', lazy=True, cascade='all, delete-orphan')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'email': self.email,
+            'detected_gender': self.detected_gender,
+            'detected_age': self.detected_age,
+            'gender_confidence': self.gender_confidence,
+            'age_confidence': self.age_confidence,
+            'is_guest': self.is_guest,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_seen': self.last_seen.isoformat() if self.last_seen else None
+        }
+
+class UserSession(db.Model):
+    __tablename__ = 'user_sessions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    start_time = db.Column(db.DateTime, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    expires_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=30))
+    
+    user_agent = db.Column(db.Text, nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    browser_info = db.Column(db.Text, nullable=True)
+    
+    total_snapshots = db.Column(db.Integer, default=0)
+    total_analysis_time = db.Column(db.Integer, default=0)  
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'user_id': self.user_id,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'is_active': self.is_active,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'total_snapshots': self.total_snapshots,
+            'total_analysis_time': self.total_analysis_time
+        }
+
+class EmotionSnapshot(db.Model):
+    __tablename__ = 'emotion_snapshots'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    session_id = db.Column(db.String(100), nullable=False)
+    
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
-    user = db.relationship('User', back_populates='emotion_histories')
-    message = db.relationship('Message', back_populates='emotion_history')
-    entries = db.relationship('EmotionEntry', back_populates='history', cascade='all, delete-orphan')
+    emotions_data = db.Column(db.Text, nullable=False) 
+    dominant_emotion = db.Column(db.String(50), nullable=False)
+    emotion_intensity = db.Column(db.Float, nullable=False)
     
+    face_detected = db.Column(db.Boolean, default=False)
+    face_count = db.Column(db.Integer, default=0)
+    face_confidence = db.Column(db.Float, nullable=True)
+    face_box = db.Column(db.Text, nullable=True) 
+    
+    detected_age = db.Column(db.Float, nullable=True)
+    detected_gender = db.Column(db.String(20), nullable=True)
+    age_confidence = db.Column(db.Float, nullable=True)
+    gender_confidence = db.Column(db.Float, nullable=True)
+    
+    is_manual_save = db.Column(db.Boolean, default=False)
+    note = db.Column(db.Text, nullable=True)
     
     __table_args__ = (
-        db.Index('idx_emotion_history_user', 'user_id'),
-        db.Index('idx_emotion_history_message', 'message_id'),
-        db.Index('idx_emotion_history_timestamp', 'timestamp'),
+        db.Index('idx_user_timestamp', 'user_id', 'timestamp'),
+        db.Index('idx_session_timestamp', 'session_id', 'timestamp'),
+        db.Index('idx_dominant_emotion', 'dominant_emotion'),
     )
+    
+    def get_emotions_data(self):
+        try:
+            return json.loads(self.emotions_data) if self.emotions_data else {}
+        except:
+            return {}
+    
+    def set_emotions_data(self, data):
+        """حفظ بيانات المشاعر كـ JSON"""
+        self.emotions_data = json.dumps(data) if data else '{}'
+    
+    def get_face_box(self):
+        """استخراج إحداثيات الوجه من JSON"""
+        try:
+            return json.loads(self.face_box) if self.face_box else {}
+        except:
+            return {}
+    
+    def set_face_box(self, box_data):
+        """حفظ إحداثيات الوجه كـ JSON"""
+        self.face_box = json.dumps(box_data) if box_data else '{}'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'session_id': self.session_id,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'emotions_data': self.get_emotions_data(),
+            'dominant_emotion': self.dominant_emotion,
+            'emotion_intensity': self.emotion_intensity,
+            'face_detected': self.face_detected,
+            'face_count': self.face_count,
+            'face_confidence': self.face_confidence,
+            'face_box': self.get_face_box(),
+            'detected_age': self.detected_age,
+            'detected_gender': self.detected_gender,
+            'age_confidence': self.age_confidence,
+            'gender_confidence': self.gender_confidence,
+            'is_manual_save': self.is_manual_save,
+            'note': self.note
+        }
 
-
-class EmotionEntry(db.Model):
-    __tablename__ = 'emotion_entries'
+class FaceEncoding(db.Model):
+    __tablename__ = 'face_encodings'
     
     id = db.Column(db.Integer, primary_key=True)
-    history_id = db.Column(db.Integer, db.ForeignKey('emotion_history.id'), nullable=False)
-    predictions = db.Column(JSON)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
+    encoding_data = db.Column(db.Text, nullable=False)  
+    label = db.Column(db.String(100), nullable=True)
+    confidence_threshold = db.Column(db.Float, default=0.6)
     
-    history = db.relationship('EmotionHistory', back_populates='entries')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used = db.Column(db.DateTime, nullable=True)
+    usage_count = db.Column(db.Integer, default=0)
     
-   
-
-#=====================Users fun=========================
-# إنشاء مستخدم جديد
-def create_user(name, gender, approximate_age):
-    try:
-        new_user = User(
-            name=name,
-            gender=gender,
-            approximate_age=approximate_age
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        return new_user
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-# الحصول على مستخدم بواسطة المعرف
-def get_user_by_id(user_id):
-    return User.query.get(user_id)
-
-# الحصول على جميع المستخدمين
-def get_all_users():
-    return User.query.order_by(User.created_at.desc()).all()
-
-# تحديث بيانات المستخدم
-def update_user(user_id, **kwargs):
-    try:
-        user = User.query.get(user_id)
-        if not user:
-            return None
-        
-        for key, value in kwargs.items():
-            if hasattr(user, key):
-                setattr(user, key, value)
-        
-        db.session.commit()
-        return user
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-# حذف مستخدم
-def delete_user(user_id):
-    try:
-        user = User.query.get(user_id)
-        if not user:
-            return False
-        
-        db.session.delete(user)
-        db.session.commit()
-        return True
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-def search_users_by_name(name):
-    return User.query.filter(User.name.ilike(f'%{name}%')).all()
-
-# الحصول على عدد المستخدمين
-def get_users_count():
-    return User.query.count()
-
-
-def check_user_exists(user_id):
-    """
-    تتحقق من وجود مستخدم بالمعرف المحدد (أكثر كفاءة)
-    :param user_id: معرف المستخدم المراد البحث عنه
-    :return: True إذا كان المستخدم موجوداً، False إذا غير موجود
-    """
-    return db.session.query(exists().where(User.user_id == user_id)).scalar()
-
-#================================Message===================
-# إنشاء رسالة جديدة
-def create_message(user_id, content, dominant_emotion):
-    try:
-        new_message = Message(
-            id=str(uuid.uuid4()),
-            user_id=user_id,
-            content=content,
-            dominant_emotion=dominant_emotion
-        )
-        new_history = EmotionHistory(
-            message_id=new_message.id,
-            user_id=user_id,
-        )
-        
-        db.session.add(new_message)
-        db.session.add(new_history)
-        db.session.commit()
-        return new_message,new_history
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-# الحصول على رسالة بواسطة المعرف
-def get_message_by_id(message_id):
-    return Message.query.get(message_id)
-
-# الحصول على جميع رسائل مستخدم معين
-def get_user_messages(user_id, limit=None):
-    query = Message.query.filter_by(user_id=user_id).order_by(Message.timestamp.desc())
-    if limit:
-        query = query.limit(limit)
-    return query.all()
-
-# الحصول على أحدث الرسائل
-def get_recent_messages(limit=10):
-    return Message.query.order_by(Message.timestamp.desc()).limit(limit).all()
-
-# البحث في محتوى الرسائل
-def search_messages_content(search_term):
-    return Message.query.filter(Message.content.ilike(f'%{search_term}%')).all()
-
-# الحصول على رسائل حسب المشاعر السائدة
-def get_messages_by_emotion(emotion):
-    return Message.query.filter_by(dominant_emotion=emotion).all()
-
-# تحديث رسالة
-def update_message(message_id, **kwargs):
-    try:
-        message = Message.query.get(message_id)
-        if not message:
-            return None
-        
-        for key, value in kwargs.items():
-            if hasattr(message, key):
-                setattr(message, key, value)
-        
-        db.session.commit()
-        return message
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-# حذف رسالة
-def delete_message(message_id):
-    try:
-        message = Message.query.get(message_id)
-        if not message:
-            return False
-        
-        db.session.delete(message)
-        db.session.commit()
-        return True
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-# الحصول على عدد الرسائل
-def get_messages_count():
-    return Message.query.count()
-#================================EmotionHistory===================
-# إنشاء سجل مشاعر جديد
-def create_emotion_history(message_id):
-    try:
-        new_history = EmotionHistory(
-            message_id=message_id,
-        )
-        db.session.add(new_history)
-        db.session.commit()
-        return new_history
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-# الحصول على سجل مشاعر بواسطة المعرف
-def get_emotion_history_by_id(history_id):
-    return EmotionHistory.query.get(history_id)
-
-# الحصول على سجل المشاعر لرسالة معينة
-def get_message_emotion_history(message_id):
-    return EmotionHistory.query.filter_by(message_id=message_id).order_by(EmotionHistory.timestamp).all()
-
-# الحصول على سجل المشاعر لمستخدم معين
-def get_user_emotion_history(user_id, limit=None):
-    query = EmotionHistory.query.join(Message).filter(Message.user_id == user_id).order_by(EmotionHistory.timestamp.desc())
-    if limit:
-        query = query.limit(limit)
-    return query.all()
-
-# تحديث وقت سجل المشاعر
-def update_emotion_history_timestamp(history_id, new_timestamp):
-    try:
-        history = EmotionHistory.query.get(history_id)
-        if not history:
-            return None
-        
-        history.timestamp = new_timestamp
-        db.session.commit()
-        return history
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-# حذف سجل مشاعر
-def delete_emotion_history(history_id):
-    try:
-        history = EmotionHistory.query.get(history_id)
-        if not history:
-            return False
-        
-        db.session.delete(history)
-        db.session.commit()
-        return True
-    except Exception as e:
-        db.session.rollback()
-        raise e
-
-def get_user_emotion_history(user_id):
-    """
-    تسترجع جميع سجلات المشاعر (EmotionHistory) لمستخدم معين
-    مع الرسائل المرتبطة بها
+    face_image_path = db.Column(db.String(255), nullable=True)
+    face_quality_score = db.Column(db.Float, nullable=True)
     
-    :param user_id: معرف المستخدم (String)
-    :return: قائمة من سجلات EmotionHistory أو None إذا لم يوجد
-    """
-    try:
-        history_records = db.session.query(EmotionHistory)\
-            .filter(EmotionHistory.user_id == user_id)\
-            .options(
-                db.joinedload(EmotionHistory.message),  # تحميل الرسالة المرتبطة
-                db.joinedload(EmotionHistory.entries)   # تحميل المدخلات المرتبطة
-            )\
-            .order_by(EmotionHistory.timestamp.desc())\
-            .all()
+    def get_encoding_data(self):
+        try:
+            return json.loads(self.encoding_data) if self.encoding_data else []
+        except:
+            return []
+    
+    def set_encoding_data(self, data):
+        self.encoding_data = json.dumps(data) if data else '[]'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'encoding_data': self.get_encoding_data(),
+            'label': self.label,
+            'confidence_threshold': self.confidence_threshold,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_used': self.last_used.isoformat() if self.last_used else None,
+            'usage_count': self.usage_count,
+            'face_quality_score': self.face_quality_score
+        }
+
+class SystemLog(db.Model):
+    __tablename__ = 'system_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    event_type = db.Column(db.String(50), nullable=False)  
+    level = db.Column(db.String(20), default='info')
+    
+    message = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, nullable=True)
+    session_id = db.Column(db.String(100), nullable=True)
+    
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
+    additional_data = db.Column(db.Text, nullable=True)  
+    
+    __table_args__ = (
+        db.Index('idx_timestamp', 'timestamp'),
+        db.Index('idx_event_type', 'event_type'),
+        db.Index('idx_level', 'level'),
+        db.Index('idx_user_id', 'user_id'),
+    )
+    
+    def get_additional_data(self):
+        try:
+            return json.loads(self.additional_data) if self.additional_data else {}
+        except:
+            return {}
+    
+    def set_additional_data(self, data):
+        self.additional_data = json.dumps(data) if data else '{}'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'event_type': self.event_type,
+            'level': self.level,
+            'message': self.message,
+            'user_id': self.user_id,
+            'session_id': self.session_id,
+            'ip_address': self.ip_address,
+            'additional_data': self.get_additional_data()
+        }
+
+class EmotionStatistics(db.Model):
+    __tablename__ = 'emotion_statistics'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    date = db.Column(db.Date, nullable=False)
+    period_type = db.Column(db.String(20), default='daily') 
+    
+    total_snapshots = db.Column(db.Integer, default=0)
+    total_analysis_time = db.Column(db.Integer, default=0)  
+    
+    happy_count = db.Column(db.Integer, default=0)
+    sad_count = db.Column(db.Integer, default=0)
+    angry_count = db.Column(db.Integer, default=0)
+    surprised_count = db.Column(db.Integer, default=0)
+    fearful_count = db.Column(db.Integer, default=0)
+    disgusted_count = db.Column(db.Integer, default=0)
+    neutral_count = db.Column(db.Integer, default=0)
+    
+    avg_emotion_intensity = db.Column(db.Float, default=0.0)
+    
+    avg_face_confidence = db.Column(db.Float, default=0.0)
+    total_faces_detected = db.Column(db.Integer, default=0)
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'date', 'period_type', name='unique_user_date_period'),
+        db.Index('idx_user_date', 'user_id', 'date'),
+    )
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'date': self.date.isoformat() if self.date else None,
+            'period_type': self.period_type,
+            'total_snapshots': self.total_snapshots,
+            'total_analysis_time': self.total_analysis_time,
+            'emotion_distribution': {
+                'happy': self.happy_count,
+                'sad': self.sad_count,
+                'angry': self.angry_count,
+                'surprised': self.surprised_count,
+                'fearful': self.fearful_count,
+                'disgusted': self.disgusted_count,
+                'neutral': self.neutral_count
+            },
+            'avg_emotion_intensity': self.avg_emotion_intensity,
+            'avg_face_confidence': self.avg_face_confidence,
+            'total_faces_detected': self.total_faces_detected
+        }
+
+def init_db(app):
+    db.init_app(app)
+    
+    with app.app_context():
+        db.create_all()
         
-        if not history_records:
-            return None
+        try:
+            db.engine.execute("""
+                CREATE INDEX IF NOT EXISTS idx_emotion_snapshots_user_time_emotion 
+                ON emotion_snapshots(user_id, timestamp DESC, dominant_emotion)
+            """)
             
-        # تحويل النتائج إلى قاموس قابل للتسلسل
-        result = []
-        for record in history_records:
-            result.append({
-                "id": record.id,
-                "user_id": record.user_id,
-                "message_id": record.message_id,
-                "timestamp": record.timestamp.isoformat(),
-                "message_content": record.message.content if record.message else None,
-                "entries_count": len(record.entries)
-            })
+            db.engine.execute("""
+                CREATE INDEX IF NOT EXISTS idx_user_sessions_active_expires 
+                ON user_sessions(is_active, expires_at)
+            """)
             
-        return result
+            print(" تم إنشاء قاعدة البيانات والفهارس بنجاح")
+            
+        except Exception as e:
+            print(f" تحذير: لم يتم إنشاء بعض الفهارس: {e}")
+
+def create_sample_data():
+    try:
+        sample_user = User(
+            name="مستخدم تجريبي",
+            email="test@example.com",
+            detected_gender="male",
+            detected_age=25,
+            gender_confidence=0.95,
+            age_confidence=0.87,
+            is_guest=False
+        )
+        
+        db.session.add(sample_user)
+        db.session.commit()
+        
+        sample_session = UserSession(
+            user_id=sample_user.id,
+            user_agent="Mozilla/5.0 Test Browser",
+            ip_address="127.0.0.1"
+        )
+        
+        db.session.add(sample_session)
+        db.session.commit()
+        
+        sample_snapshot = EmotionSnapshot(
+            user_id=sample_user.id,
+            session_id=sample_session.session_id,
+            dominant_emotion="happy",
+            emotion_intensity=0.85,
+            face_detected=True,
+            face_count=1,
+            face_confidence=0.92,
+            detected_age=25.3,
+            detected_gender="male",
+            age_confidence=0.87,
+            gender_confidence=0.95
+        )
+        
+        sample_snapshot.set_emotions_data({
+            "happy": 85.2,
+            "neutral": 10.1,
+            "surprised": 3.2,
+            "sad": 1.5
+        })
+        
+        sample_snapshot.set_face_box({
+            "x": 150,
+            "y": 100,
+            "width": 200,
+            "height": 240
+        })
+        
+        db.session.add(sample_snapshot)
+        db.session.commit()
+        
+        print("✅ تم إنشاء البيانات التجريبية بنجاح")
         
     except Exception as e:
-        app.logger.error(f"Error fetching emotion history for user {user_id}: {str(e)}")
-        raise
+        print(f"⚠️ خطأ في إنشاء البيانات التجريبية: {e}")
+        db.session.rollback()
+

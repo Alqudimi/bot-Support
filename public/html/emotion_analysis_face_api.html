@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام التعرف الذكي على الوجوه </title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    
+    <!-- Face-API.js -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="api_client.js"></script>
+    
+    <style>
+        :root {
+            --primary: #8A2BE2;
+            --secondary: #9370DB;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --light: #f0f0f0;
+            --gem-blue: #4169E1;
+            --gem-purple: #9932CC;
+            --gem-pink: #DA70D6;
+            --success: #32CD32;
+            --warning: #FFD700;
+            --danger: #FF4500;
+            --card-bg: rgba(30, 30, 40, 0.8);
+            --card-border: rgba(138, 43, 226, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.5s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--light);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            transform: translateX(-100%);
+            transition: transform 0.5s;
+        }
+
+        .btn:hover::before {
+            transform: translateX(100%);
+        }
+
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn i {
+            font-size: 1.2em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gem-purple), var(--primary));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--gem-pink), #ff6b6b);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #00b894);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #ff7675);
+            color: white;
+        }
+
+        .video-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--card-border);
+            background: var(--darker);
+            max-width: 640px;
+            margin: 0 auto 30px;
+        }
+
+        #video, #canvas {
+            border-radius: 15px;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        #video {
+            display: block;
+            background-color: #000;
+            transform: scaleX(-1);
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 15px;
+            font-weight: bold;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status.loading {
+            background: rgba(50, 50, 0, 0.3);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .status.ready {
+            background: rgba(0, 50, 0, 0.3);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status.error {
+            background: rgba(80, 0, 0, 0.3);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .analysis-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .emotion-card, .identity-container, .session-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(5px);
+        }
+
+        .card-header {
+            color: var(--light);
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .card-header i {
+            color: var(--gem-pink);
+        }
+
+        .emotion-bar {
+            margin-bottom: 15px;
+        }
+
+        .emotion-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #ddd;
+        }
+
+        .emotion-progress {
+            width: 100%;
+            height: 22px;
+            background: rgba(50, 50, 70, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .emotion-fill {
+            height: 100%;
+            border-radius: 15px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 15px rgba(255,255,255,0.2);
+        }
+
+        .emotion-happy { background: linear-gradient(90deg, #FFD700, #FFA500); }
+        .emotion-sad { background: linear-gradient(90deg, #1E90FF, #4169E1); }
+        .emotion-angry { background: linear-gradient(90deg, #FF4500, #DC143C); }
+        .emotion-surprised { background: linear-gradient(90deg, #FF8C00, #FF4500); }
+        .emotion-fearful { background: linear-gradient(90deg, #9932CC, #8A2BE2); }
+        .emotion-disgusted { background: linear-gradient(90deg, #32CD32, #228B22); }
+        .emotion-neutral { background: linear-gradient(90deg, #A9A9A9, #696969); }
+
+        .identity-row {
+            display: flex;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .identity-label {
+            font-weight: bold;
+            min-width: 120px;
+            color: #bbb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .identity-value {
+            flex: 1;
+            color: white;
+            font-weight: 500;
+        }
+
+        .gender-male { color: #1E90FF; }
+        .gender-female { color: #FF69B4; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--gem-purple), var(--gem-blue));
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-number {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.95em;
+            opacity: 0.9;
+        }
+
+        .log {
+            background: rgba(30, 30, 40, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 15px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin-top: 20px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-entry.info { color: #1E90FF; border-left: 3px solid #1E90FF; }
+        .log-entry.success { color: #32CD32; border-left: 3px solid #32CD32; }
+        .log-entry.warning { color: #FFD700; border-left: 3px solid #FFD700; }
+        .log-entry.error { color: #FF4500; border-left: 3px solid #FF4500; }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            padding: 40px;
+            border-radius: 25px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--gem-purple);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modal-content::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(138,43,226,0.1) 0%, rgba(138,43,226,0) 70%);
+            z-index: -1;
+        }
+
+        .modal-title {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 25px;
+            border: 2px solid var(--gem-purple);
+            border-radius: 12px;
+            font-size: 18px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+        }
+
+        .modal-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .auto-save-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+
+        .auto-save-indicator.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 350px;
+            }
+
+            .analysis-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="bi bi-camera-video"></i>
+                نظام التعرف الذكي على الوجوه
+                <span style="font-size: 0.5em; opacity: 0.8;">v2.0</span>
+            </h1>
+            <p>تحليل المشاعر والتعرف على الوجوه باستخدام الذكاء الاصطناعي مع حفظ تلقائي كل 5 ثوانٍ</p>
+        </div>
+
+        <div class="main-content">
+            <!-- أزرار التحكم -->
+            <div class="controls">
+                <button id="startBtn" class="btn btn-primary">
+                    <i class="bi bi-play-circle"></i>
+                    بدء التحليل
+                </button>
+                <button id="stopBtn" class="btn btn-danger" disabled>
+                    <i class="bi bi-stop-circle"></i>
+                    إيقاف التحليل
+                </button>
+                <button id="registerBtn" class="btn btn-success">
+                    <i class="bi bi-person-plus"></i>
+                    تسجيل مستخدم
+                </button>
+                <button id="guestBtn" class="btn btn-secondary">
+                    <i class="bi bi-person-dash"></i>
+                    دخول كضيف
+                </button>
+                <button id="saveSnapshotBtn" class="btn btn-primary" disabled>
+                    <i class="bi bi-camera"></i>
+                    حفظ لقطة
+                </button>
+            </div>
+
+            <!-- حالة النظام -->
+            <div id="status" class="status loading">
+                <i class="bi bi-hourglass-split"></i>
+                جاري تحميل نماذج الذكاء الاصطناعي...
+                <div class="loading-spinner"></div>
+            </div>
+
+            <!-- حاوية الفيديو -->
+            <div class="video-container">
+                <video id="video" autoplay muted playsinline></video>
+                <canvas id="canvas"></canvas>
+            </div>
+
+            <!-- لوحة التحليل -->
+            <div class="analysis-panel">
+                <!-- بطاقة المشاعر -->
+                <div class="emotion-card">
+                    <h3 class="card-header">
+                        <i class="bi bi-emoji-smile"></i>
+                        تحليل المشاعر
+                    </h3>
+                    <div id="emotionsDisplay">
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span>سعيد</span>
+                                <span id="happy-percent">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div id="happy-fill" class="emotion-fill emotion-happy" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span>حزين</span>
+                                <span id="sad-percent">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div id="sad-fill" class="emotion-fill emotion-sad" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span>غاضب</span>
+                                <span id="angry-percent">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div id="angry-fill" class="emotion-fill emotion-angry" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span>متفاجئ</span>
+                                <span id="surprised-percent">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div id="surprised-fill" class="emotion-fill emotion-surprised" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span>خائف</span>
+                                <span id="fearful-percent">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div id="fearful-fill" class="emotion-fill emotion-fearful" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span>مشمئز</span>
+                                <span id="disgusted-percent">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div id="disgusted-fill" class="emotion-fill emotion-disgusted" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="emotion-bar">
+                            <div class="emotion-label">
+                                <span>محايد</span>
+                                <span id="neutral-percent">0%</span>
+                            </div>
+                            <div class="emotion-progress">
+                                <div id="neutral-fill" class="emotion-fill emotion-neutral" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بطاقة الهوية -->
+                <div class="identity-container">
+                    <h3 class="card-header">
+                        <i class="bi bi-person-badge"></i>
+                        معلومات الهوية
+                    </h3>
+                    <div class="identity-row">
+                        <div class="identity-label">
+                            <i class="bi bi-person"></i>
+                            الجنس:
+                        </div>
+                        <div id="genderDisplay" class="identity-value">غير محدد</div>
+                    </div>
+                    <div class="identity-row">
+                        <div class="identity-label">
+                            <i class="bi bi-calendar"></i>
+                            العمر:
+                        </div>
+                        <div id="ageDisplay" class="identity-value">غير محدد</div>
+                    </div>
+                    <div class="identity-row">
+                        <div class="identity-label">
+                            <i class="bi bi-eye"></i>
+                            الوجوه المكتشفة:
+                        </div>
+                        <div id="faceCountDisplay" class="identity-value">0</div>
+                    </div>
+                    <div class="identity-row">
+                        <div class="identity-label">
+                            <i class="bi bi-shield-check"></i>
+                            دقة الكشف:
+                        </div>
+                        <div id="confidenceDisplay" class="identity-value">0%</div>
+                    </div>
+                </div>
+
+                <!-- بطاقة الجلسة -->
+                <div class="session-card">
+                    <h3 class="card-header">
+                        <i class="bi bi-clock-history"></i>
+                        معلومات الجلسة
+                    </h3>
+                    <div class="identity-row">
+                        <div class="identity-label">
+                            <i class="bi bi-person-circle"></i>
+                            المستخدم:
+                        </div>
+                        <div id="userNameDisplay" class="identity-value">غير مسجل</div>
+                    </div>
+                    <div class="identity-row">
+                        <div class="identity-label">
+                            <i class="bi bi-stopwatch"></i>
+                            مدة الجلسة:
+                        </div>
+                        <div id="sessionTimeDisplay" class="identity-value">00:00</div>
+                    </div>
+                    <div class="identity-row">
+                        <div class="identity-label">
+                            <i class="bi bi-camera2"></i>
+                            اللقطات المحفوظة:
+                        </div>
+                        <div id="snapshotCountDisplay" class="identity-value">0</div>
+                    </div>
+                    <div class="identity-row">
+                        <div class="identity-label">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            الحفظ التلقائي:
+                        </div>
+                        <div id="autoSaveStatus" class="identity-value">متوقف</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الإحصائيات -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalAnalysisTime">0</div>
+                    <div class="stat-label">ثواني التحليل</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="dominantEmotion">محايد</div>
+                    <div class="stat-label">المشاعر المهيمنة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgConfidence">0%</div>
+                    <div class="stat-label">متوسط الدقة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="fpsDisplay">0</div>
+                    <div class="stat-label">إطار/ثانية</div>
+                </div>
+            </div>
+
+            <!-- سجل الأحداث -->
+            <div class="log" id="logContainer">
+                <div class="log-entry info">
+                    <i class="bi bi-info-circle"></i>
+                    <span>مرحباً بك في نظام التعرف الذكي على الوجوه</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مؤشر الحفظ التلقائي -->
+    <div id="autoSaveIndicator" class="auto-save-indicator">
+        <i class="bi bi-check-circle"></i>
+        تم الحفظ تلقائياً
+    </div>
+
+    <!-- نافذة تسجيل المستخدم -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">
+                <i class="bi bi-person-plus"></i>
+                تسجيل مستخدم جديد
+            </div>
+            <input type="text" id="registerName" class="modal-input" placeholder="الاسم الكامل" required>
+            <input type="email" id="registerEmail" class="modal-input" placeholder="البريد الإلكتروني (اختياري)">
+            <input type="password" id="registerPassword" class="modal-input" placeholder="كلمة المرور (اختياري)">
+            <div style="margin-bottom: 20px; color: #bbb; font-size: 0.9em;">
+                <i class="bi bi-info-circle"></i>
+                سيتم تحديد العمر والجنس تلقائياً من الكاميرا
+            </div>
+            <div class="modal-buttons">
+                <button id="confirmRegister" class="btn btn-success">
+                    <i class="bi bi-check"></i>
+                    تسجيل
+                </button>
+                <button id="cancelRegister" class="btn btn-secondary">
+                    <i class="bi bi-x"></i>
+                    إلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات عامة
+        let video, canvas, ctx;
+        let isAnalyzing = false;
+        let modelsLoaded = false;
+        let currentUser = null;
+        let currentSession = null;
+        let sessionStartTime = null;
+        let autoSaveInterval = null;
+        let snapshotCount = 0;
+        let totalAnalysisTime = 0;
+        let fpsCounter = 0;
+        let lastFpsTime = Date.now();
+
+        // إعدادات API
+        const API_BASE_URL = 'http://localhost:5000/api';
+
+        // تهيئة التطبيق
+        document.addEventListener('DOMContentLoaded', async function() {
+            await initializeApp();
+        });
+
+        async function initializeApp() {
+            try {
+                video = document.getElementById('video');
+                canvas = document.getElementById('canvas');
+                ctx = canvas.getContext('2d');
+                if(localStorage.getItem('session_id') !==null&& localStorage.getItem('user') !== null){
+                    currentUser = JSON.parse(localStorage.getItem('user'));
+                    currentSession = localStorage.getItem('session_id');
+                    document.getElementById('registerBtn').style.display = 'none';
+                }else{
+                    createGuestSession();
+                }
+
+
+                await loadFaceApiModels();
+
+                await initializeCamera();
+
+                initializeEventListeners();
+
+                updateStatus('ready', 'النظام جاهز للاستخدام');
+                addLogEntry('success', 'تم تحميل النظام بنجاح');
+
+            } catch (error) {
+                console.error('خطأ في تهيئة التطبيق:', error);
+                updateStatus('error', 'فشل في تحميل النظام');
+                addLogEntry('error', `خطأ في التهيئة: ${error.message}`);
+            }
+        }
+
+        async function loadFaceApiModels() {
+            try {
+                updateStatus('loading', 'جاري تحميل نماذج الذكاء الاصطناعي...');
+                
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@latest/model';
+                
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)
+                ]);
+
+                modelsLoaded = true;
+                addLogEntry('success', 'تم تحميل نماذج الذكاء الاصطناعي بنجاح');
+                
+            } catch (error) {
+                throw new Error('فشل في تحميل نماذج الذكاء الاصطناعي');
+            }
+        }
+
+        async function initializeCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        facingMode: 'user'
+                    }
+                });
+                
+                video.srcObject = stream;
+                
+                video.addEventListener('loadedmetadata', () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    addLogEntry('success', 'تم تشغيل الكاميرا بنجاح');
+                });
+
+            } catch (error) {
+                throw new Error('فشل في الوصول إلى الكاميرا');
+            }
+        }
+
+        function initializeEventListeners() {
+            // أزرار التحكم
+            document.getElementById('startBtn').addEventListener('click', startAnalysis);
+            document.getElementById('stopBtn').addEventListener('click', stopAnalysis);
+            document.getElementById('registerBtn').addEventListener('click', showRegisterModal);
+            document.getElementById('guestBtn').addEventListener('click', createGuestSession);
+            document.getElementById('saveSnapshotBtn').addEventListener('click', saveManualSnapshot);
+
+            // نافذة التسجيل
+            document.getElementById('confirmRegister').addEventListener('click', registerUser);
+            document.getElementById('cancelRegister').addEventListener('click', hideRegisterModal);
+
+            // إغلاق النافذة بالنقر خارجها
+            document.getElementById('registerModal').addEventListener('click', function(e) {
+                if (e.target === this) hideRegisterModal();
+            });
+        }
+
+        async function startAnalysis() {
+            if (!modelsLoaded) {
+                addLogEntry('error', 'النماذج لم يتم تحميلها بعد');
+                return;
+            }
+
+            isAnalyzing = true;
+            sessionStartTime = Date.now();
+            
+            // تحديث واجهة المستخدم
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('saveSnapshotBtn').disabled = false;
+            
+            updateStatus('ready', 'جاري التحليل...');
+            addLogEntry('info', 'بدء تحليل المشاعر');
+
+            // بدء الحفظ التلقائي كل 5 ثوانٍ
+            if (currentSession) {
+                startAutoSave();
+            }
+
+            // بدء حلقة التحليل
+            analyzeFrame();
+        }
+
+        function stopAnalysis() {
+            isAnalyzing = false;
+            
+            // تحديث واجهة المستخدم
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('saveSnapshotBtn').disabled = true;
+            
+            updateStatus('ready', 'تم إيقاف التحليل');
+            addLogEntry('info', 'تم إيقاف تحليل المشاعر');
+
+            // إيقاف الحفظ التلقائي
+            stopAutoSave();
+
+            // مسح الرسوم على الكانفاس
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        async function analyzeFrame() {
+            if (!isAnalyzing) return;
+
+            try {
+                // كشف الوجوه والتحليل
+                const detections = await faceapi
+                    .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
+                        inputSize:320,
+                        scoreThreshold:0.5
+                    }))
+                    .withFaceLandmarks()
+                    .withFaceExpressions()
+                    .withAgeAndGender();
+
+                // مسح الكانفاس
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (detections.length > 0) {
+                    // رسم النتائج
+                    const resizedDetections = faceapi.resizeResults(detections, {
+                        width: canvas.width,
+                        height: canvas.height
+                    });
+                    
+
+                    // رسم مربعات الوجوه
+                    faceapi.draw.drawDetections(canvas, resizedDetections);
+                    faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
+                    faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+
+                    resizedDetections.forEach(detection => {
+                        // رسم مربع الوجه مع التسمية
+                        const box = detection.detection.box;
+                        const drawBox = new faceapi.draw.DrawBox(box, {
+                            label: `Age: ${Math.round(detection.age)} years, Gender: ${detection.gender}`,
+                            boxColor: '#00ff00',
+                            lineWidth: 2
+                        });
+                        drawBox.draw(canvas);
+                        
+                        const gender = detection.gender;
+                        const age = Math.round(detection.age);
+                        const genderText = `${gender} (${age} yrs)`;
+                        
+                        // وضع النص أعلى المربع
+                        const textOptions = {
+                            fontSize: 16,
+                            fontFamily: 'Arial',
+                            fontStyle: 'bold',
+                            color: '#ff0000',
+                            textAlign: 'right',
+                        };
+                        
+                        new faceapi.draw.DrawTextField(
+                            [genderText],
+                            { x: box.x+box.width-10, y: box.y -20 },
+                            textOptions
+                        ).draw(canvas);
+                    });
+                    
+                    // تحديث البيانات
+                    updateEmotionDisplay(detections[0].expressions);
+                    updateIdentityDisplay(detections[0]);
+                    updateFaceInfo(detections);
+
+                    // حساب FPS
+                    updateFPS();
+                }
+
+                // تحديث وقت الجلسة
+                updateSessionTime();
+
+                // الإطار التالي
+                requestAnimationFrame(analyzeFrame);
+
+            } catch (error) {
+                console.error('خطأ في تحليل الإطار:', error);
+                addLogEntry('error', `خطأ في التحليل: ${error.message}`);
+                requestAnimationFrame(analyzeFrame);
+            }
+        }
+        
+
+        function updateEmotionDisplay(expressions) {
+            const emotions = {
+                'happy': 'سعيد',
+                'sad': 'حزين', 
+                'angry': 'غاضب',
+                'surprised': 'متفاجئ',
+                'fearful': 'خائف',
+                'disgusted': 'مشمئز',
+                'neutral': 'محايد'
+            };
+
+            let dominantEmotion = 'neutral';
+            let maxValue = 0;
+
+            for (const [emotion, arabicName] of Object.entries(emotions)) {
+                const value = expressions[emotion] || 0;
+                const percentage = Math.round(value * 100);
+                
+                // تحديث شريط التقدم
+                document.getElementById(`${emotion}-percent`).textContent = `${percentage}%`;
+                document.getElementById(`${emotion}-fill`).style.width = `${percentage}%`;
+
+                // تحديد المشاعر المهيمنة
+                if (value > maxValue) {
+                    maxValue = value;
+                    dominantEmotion = arabicName;
+                }
+            }
+
+            // تحديث المشاعر المهيمنة
+            document.getElementById('dominantEmotion').textContent = dominantEmotion;
+        }
+
+        function updateIdentityDisplay(detection) {
+            const age = Math.round(detection.age);
+            const gender = detection.gender === 'male' ? 'ذكر' : 'أنثى';
+            const genderClass = detection.gender === 'male' ? 'gender-male' : 'gender-female';
+            const confidence = Math.round(detection.genderProbability * 100);
+
+            document.getElementById('ageDisplay').textContent = `${age} سنة`;
+            document.getElementById('genderDisplay').innerHTML = `<span class="${genderClass}">${gender}</span>`;
+            document.getElementById('confidenceDisplay').textContent = `${confidence}%`;
+
+            // تحديث متوسط الدقة
+            document.getElementById('avgConfidence').textContent = `${confidence}%`;
+        }
+
+        function updateFaceInfo(detections) {
+            document.getElementById('faceCountDisplay').textContent = detections.length;
+        }
+
+        function updateFPS() {
+            fpsCounter++;
+            const now = Date.now();
+            if (now - lastFpsTime >= 1000) {
+                document.getElementById('fpsDisplay').textContent = fpsCounter;
+                fpsCounter = 0;
+                lastFpsTime = now;
+            }
+        }
+
+        function updateSessionTime() {
+            if (sessionStartTime) {
+                const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('sessionTimeDisplay').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                document.getElementById('totalAnalysisTime').textContent = elapsed;
+            }
+        }
+
+        function startAutoSave() {
+            document.getElementById('autoSaveStatus').textContent = 'نشط';
+            
+            autoSaveInterval = setInterval(async () => {
+                if (isAnalyzing && currentSession) {
+                    await saveCurrentAnalysis(false);
+                    showAutoSaveIndicator();
+                }
+            }, 5000); 
+        }
+
+        function stopAutoSave() {
+            document.getElementById('autoSaveStatus').textContent = 'متوقف';
+            
+            if (autoSaveInterval) {
+                clearInterval(autoSaveInterval);
+                autoSaveInterval = null;
+            }
+        }
+
+        function showAutoSaveIndicator() {
+            const indicator = document.getElementById('autoSaveIndicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+
+        async function saveCurrentAnalysis(isManual = false) {
+            try {
+                // الحصول على البيانات الحالية من الواجهة
+                const emotionsData = getCurrentEmotions();
+                const faceData = getCurrentFaceData();
+                const ageGenderData = getCurrentAgeGenderData();
+
+                const data = {
+                    emotions: emotionsData,
+                    face_data: faceData,
+                    age_gender_data: ageGenderData,
+                    manual_save: isManual
+                };
+
+                const response = await fetch(`${API_BASE_URL}/emotions/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': currentSession
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (isManual) {
+                        snapshotCount++;
+                        document.getElementById('snapshotCountDisplay').textContent = snapshotCount;
+                        addLogEntry('success', 'تم حفظ اللقطة بنجاح');
+                    }
+                } else {
+                    throw new Error('فشل في حفظ البيانات');
+                }
+
+            } catch (error) {
+                console.error('خطأ في حفظ التحليل:', error);
+                addLogEntry('error', `خطأ في الحفظ: ${error.message}`);
+            }
+        }
+
+        function getCurrentEmotions() {
+            const emotions = {};
+            const emotionNames = ['happy', 'sad', 'angry', 'surprised', 'fearful', 'disgusted', 'neutral'];
+            
+            emotionNames.forEach(emotion => {
+                const percentText = document.getElementById(`${emotion}-percent`).textContent;
+                emotions[emotion] = parseFloat(percentText.replace('%', '')) || 0;
+            });
+            
+            return emotions;
+        }
+
+        function getCurrentFaceData() {
+            const faceCount = parseInt(document.getElementById('faceCountDisplay').textContent) || 0;
+            const confidence = parseFloat(document.getElementById('confidenceDisplay').textContent.replace('%', '')) / 100 || 0;
+            
+            return {
+                face_detected: faceCount > 0,
+                face_count: faceCount,
+                face_confidence: confidence
+            };
+        }
+
+        function getCurrentAgeGenderData() {
+            const ageText = document.getElementById('ageDisplay').textContent;
+            const genderElement = document.getElementById('genderDisplay').textContent;
+            const confidenceText = document.getElementById('confidenceDisplay').textContent;
+            console.log('genderElement',genderElement);
+            const age = parseInt(ageText.replace(' سنة', '')) || null;
+            const gender = (genderElement == 'ذكر') ? 'male' :  'female' ;
+            const confidence = parseFloat(confidenceText.replace('%', '')) / 100 || 0;
+            
+            return {
+                age: age,
+                gender: gender,
+                age_confidence: confidence,
+                gender_confidence: confidence
+            };
+        }
+
+        async function saveManualSnapshot() {
+            await saveCurrentAnalysis(true);
+        }
+
+        function showRegisterModal() {
+            document.getElementById('registerModal').classList.add('active');
+        }
+
+        function hideRegisterModal() {
+            document.getElementById('registerModal').classList.remove('active');
+            // مسح الحقول
+            document.getElementById('registerName').value = '';
+            document.getElementById('registerEmail').value = '';
+            document.getElementById('registerPassword').value = '';
+        }
+
+        async function registerUser() {
+            const name = document.getElementById('registerName').value.trim();
+            if (!name) {
+                addLogEntry('error', 'يرجى إدخال الاسم');
+                return;
+            }
+
+            try {
+                const ageGenderData = getCurrentAgeGenderData();
+                
+                const userData = {
+                    name: name,
+                    email: document.getElementById('registerEmail').value.trim() || null,
+                    password: document.getElementById('registerPassword').value.trim() || null,
+                    detected_gender: ageGenderData.gender,
+                    detected_age: ageGenderData.age,
+                    gender_confidence: ageGenderData.gender_confidence,
+                    age_confidence: ageGenderData.age_confidence
+                };
+                console.log('userData',userData);
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    currentUser = result.user;
+                    currentSession = result.session_id;
+                    localStorage.setItem('user',JSON.stringify(result.user));
+                    localStorage.setItem('session_id',result.session_id);
+                    localStorage.setItem('jwt_token',result.jwt_token);
+                    document.getElementById('userNameDisplay').textContent = currentUser.name;
+                    addLogEntry('success', `تم تسجيل المستخدم: ${currentUser.name}`);
+                    document.getElementById('registerBtn').style.display = 'none';
+                    hideRegisterModal();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'فشل في التسجيل');
+                }
+
+            } catch (error) {
+                console.error('خطأ في التسجيل:', error);
+                addLogEntry('error', `خطأ في التسجيل: ${error.message}`);
+            }
+        }
+
+        async function createGuestSession() {
+            try {
+                // الحصول على البيانات المكتشفة
+                const ageGenderData = getCurrentAgeGenderData();
+                
+                const guestData = {
+                    detected_gender: ageGenderData.gender,
+                    detected_age: ageGenderData.age,
+                    gender_confidence: ageGenderData.gender_confidence,
+                    age_confidence: ageGenderData.age_confidence
+                };
+
+                const response = await fetch(`${API_BASE_URL}/auth/guest`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(guestData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    currentUser = result.user;
+                    currentSession = result.session_id;
+                    
+                    document.getElementById('userNameDisplay').textContent = currentUser.name;
+                    addLogEntry('success', `تم إنشاء جلسة ضيف: ${currentUser.name}`);
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'فشل في إنشاء جلسة الضيف');
+                }
+
+            } catch (error) {
+                console.error('خطأ في إنشاء جلسة الضيف:', error);
+                addLogEntry('error', `خطأ في إنشاء الجلسة: ${error.message}`);
+            }
+        }
+
+        function updateStatus(type, message) {
+            const statusElement = document.getElementById('status');
+            statusElement.className = `status ${type}`;
+            
+            let icon = '';
+            switch(type) {
+                case 'loading': icon = 'bi-hourglass-split'; break;
+                case 'ready': icon = 'bi-check-circle'; break;
+                case 'error': icon = 'bi-exclamation-triangle'; break;
+                default: icon = 'bi-info-circle';
+            }
+            
+            statusElement.innerHTML = `
+                <i class="bi ${icon}"></i>
+                ${message}
+                ${type === 'loading' ? '<div class="loading-spinner"></div>' : ''}
+            `;
+        }
+
+        function addLogEntry(type, message) {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString('ar-SA');
+            
+            let icon = '';
+            switch(type) {
+                case 'info': icon = 'bi-info-circle'; break;
+                case 'success': icon = 'bi-check-circle'; break;
+                case 'warning': icon = 'bi-exclamation-triangle'; break;
+                case 'error': icon = 'bi-x-circle'; break;
+                default: icon = 'bi-info-circle';
+            }
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `
+                <i class="bi ${icon}"></i>
+                <span>[${timestamp}] ${message}</span>
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // الاحتفاظ بآخر 50 إدخال فقط
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+    </script>
+</body>
+</html>
+
